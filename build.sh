@@ -55,6 +55,9 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     # pacman-key --init needs lots of entropy and often hangs in CI. Since the image is validated
     # before release, skip signature checks for the build (revisit if provenance matters).
     sed -i 's/^SigLevel.*/SigLevel = Never/' /etc/pacman.conf
+    # CheckSpace can't statvfs the cachedir mount inside a chroot ('could not determine cachedir
+    # mount point' -> false 'not enough free disk space'); disable it for the build.
+    sed -i 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf
     pacman -Syu --noconfirm
     pacman -S --noconfirm --needed ${PKGS[*]}
     systemctl enable NetworkManager
