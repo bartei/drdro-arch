@@ -68,8 +68,16 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     # The board is on the GPIO UART; the committed config.ini points at a USB path.
     [ -f /opt/drdro/app/config.ini ] && sed -i 's|^serial_port *=.*|serial_port = /dev/serial0|' /opt/drdro/app/config.ini
 
-    # Baked venv: native pip pulls the correct aarch64 wheels (Kivy/pydantic-core/...). No wheelhouse.
-    python -m venv /opt/drdro/app/.venv
+    # Pin the venv to Python 3.13 via pyenv — it HAS aarch64 wheels for Kivy et al., unlike Arch's
+    # rolling python (3.14, ahead of upstream wheels). pyenv compiles CPython once here; app deps
+    # then install as prebuilt wheels (no compiling Kivy), and field pip updates stay wheel-based.
+    export PYENV_ROOT=/opt/pyenv
+    git clone --depth 1 https://github.com/pyenv/pyenv \"\$PYENV_ROOT\"
+    PYVER=\$(\"\$PYENV_ROOT/bin/pyenv\" latest -k 3.13)
+    \"\$PYENV_ROOT/bin/pyenv\" install -s \"\$PYVER\"
+    PYBIN=\"\$PYENV_ROOT/versions/\$PYVER/bin/python\"
+
+    \"\$PYBIN\" -m venv /opt/drdro/app/.venv
     /opt/drdro/app/.venv/bin/pip install --upgrade pip
     /opt/drdro/app/.venv/bin/pip install /opt/drdro/app
 "

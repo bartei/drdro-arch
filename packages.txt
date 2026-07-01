@@ -1,19 +1,26 @@
+# Runtime the Kivy wheel dlopens at execution (the wheel bundles neither SDL2 nor GL).
 sdl2
 sdl2_image
 sdl2_ttf
 sdl2_mixer
 mesa
 libglvnd
-python
-python-pip
-python-virtualenv
 git
 networkmanager
 mpg123
 alsa-lib
 ttf-dejavu
-# Build toolchain: Arch is rolling and currently on Python 3.14, ahead of Kivy's cp314 wheels, so
-# pip compiles Kivy (C/Cython) from source; rust is insurance for any dep lacking a cp314 wheel
-# (e.g. pydantic-core). TODO: trim from the final image (install -> pip build -> pacman -Rns).
+# Build deps so pyenv can compile CPython 3.13 (see build.sh). We pin the app's venv to 3.13 —
+# which HAS aarch64 wheels for Kivy et al. — instead of Arch's rolling python (currently 3.14,
+# ahead of Kivy's wheels). App deps then install as wheels (no rust/gcc needed for them), and
+# field `pip install` updates stay wheel-based. Toolchain kept in the image (builds CPython; cheap
+# insurance for the rare source build).
 base-devel
-rust
+openssl
+zlib
+xz
+bzip2
+readline
+sqlite
+libffi
+ncurses
