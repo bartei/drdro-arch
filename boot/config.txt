@@ -1,0 +1,10 @@
+arm_64bit=1
+enable_uart=1
+disable_splash=1
+disable_overscan=1
+display_auto_detect=1
+max_framebuffers=2
+dtparam=audio=on
+dtparam=i2c_arm=on
+dtparam=spi=on
+dtoverlay=vc4-kms-v3d

@@ -1,0 +1,39 @@
+name: build-arch
+
+on:
+  workflow_dispatch:        # run on demand (build a new image when we want one)
+  push:
+    branches: [main]
+    paths: ['build.sh', 'packages.txt', 'overlay/**', 'boot/**', '.github/workflows/build.yml']
+
+concurrency:
+  group: arch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: arch linux arm rpi (aarch64, native)
+    runs-on: ubuntu-24.04-arm   # native ARM64 → the ALARM chroot runs without qemu
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libarchive-tools dosfstools mtools e2fsprogs util-linux git curl zstd
+
+      - name: Build image
+        run: sudo ./build.sh
+
+      - name: Compress
+        run: zstd -19 -T0 out/drdro-arch-rpi-aarch64.img -o out/drdro-arch-rpi-aarch64.img.zst
+
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: drdro-arch-rpi-aarch64
+          path: out/drdro-arch-rpi-aarch64.img.zst
+          if-no-files-found: error
+          compression-level: 0

@@ -1,0 +1,16 @@
+[Unit]
+Description=drDRO application (Kivy on KMS/DRM)
+After=systemd-user-sessions.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/drdro/app
+ExecStart=/opt/drdro/app-run.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/drdro/app.log
+StandardError=append:/var/log/drdro/app.log
+
+[Install]
+WantedBy=multi-user.target

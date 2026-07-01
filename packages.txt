@@ -1,0 +1,14 @@
+sdl2
+sdl2_image
+sdl2_ttf
+sdl2_mixer
+mesa
+libglvnd
+python
+python-pip
+python-virtualenv
+git
+networkmanager
+mpg123
+alsa-lib
+ttf-dejavu
