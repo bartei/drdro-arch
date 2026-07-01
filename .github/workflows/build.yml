@@ -37,7 +37,9 @@ jobs:
         run: sudo WORK="$WORK" OUT="$OUT" ./build.sh
 
       - name: Compress
-        run: zstd -19 -T0 "$OUT/drdro-arch-rpi-aarch64.img" -o "$OUT/drdro-arch-rpi-aarch64.img.zst"
+        # build.sh runs under sudo, so $OUT is root-owned; compress as root too (the .zst lands
+        # world-readable, so the upload step can still read it).
+        run: sudo zstd -19 -T0 "$OUT/drdro-arch-rpi-aarch64.img" -o "$OUT/drdro-arch-rpi-aarch64.img.zst"
 
       - name: Upload image
         uses: actions/upload-artifact@v4
