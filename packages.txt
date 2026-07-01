@@ -12,3 +12,8 @@ networkmanager
 mpg123
 alsa-lib
 ttf-dejavu
+# Build toolchain: Arch is rolling and currently on Python 3.14, ahead of Kivy's cp314 wheels, so
+# pip compiles Kivy (C/Cython) from source; rust is insurance for any dep lacking a cp314 wheel
+# (e.g. pydantic-core). TODO: trim from the final image (install -> pip build -> pacman -Rns).
+base-devel
+rust
