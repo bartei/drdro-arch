@@ -15,8 +15,17 @@ jobs:
     name: arch linux arm rpi (aarch64, native)
     runs-on: ubuntu-24.04-arm   # native ARM64 → the ALARM chroot runs without qemu
     timeout-minutes: 90
+    env:
+      WORK: /mnt/arch/work      # build on the big ephemeral /mnt volume, not the small root disk
+      OUT: /mnt/arch/out
     steps:
       - uses: actions/checkout@v4
+
+      - name: Free disk + prep /mnt scratch
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/hostedtoolcache /usr/share/dotnet || true
+          sudo mkdir -p /mnt/arch && sudo chown -R "$USER" /mnt/arch
+          df -h / /mnt
 
       - name: Install host tools
         run: |
@@ -25,15 +34,15 @@ jobs:
             libarchive-tools dosfstools mtools e2fsprogs util-linux git curl zstd
 
       - name: Build image
-        run: sudo ./build.sh
+        run: sudo WORK="$WORK" OUT="$OUT" ./build.sh
 
       - name: Compress
-        run: zstd -19 -T0 out/drdro-arch-rpi-aarch64.img -o out/drdro-arch-rpi-aarch64.img.zst
+        run: zstd -19 -T0 "$OUT/drdro-arch-rpi-aarch64.img" -o "$OUT/drdro-arch-rpi-aarch64.img.zst"
 
       - name: Upload image
         uses: actions/upload-artifact@v4
         with:
           name: drdro-arch-rpi-aarch64
-          path: out/drdro-arch-rpi-aarch64.img.zst
+          path: /mnt/arch/out/drdro-arch-rpi-aarch64.img.zst
           if-no-files-found: error
           compression-level: 0
