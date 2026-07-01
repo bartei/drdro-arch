@@ -34,8 +34,10 @@ mount -t proc  none "$ROOTFS/proc"
 mount -t sysfs none "$ROOTFS/sys"
 mount --bind /dev "$ROOTFS/dev"
 mount --bind /dev/pts "$ROOTFS/dev/pts"
-# Real nameservers (the host's resolv.conf is often a systemd-resolved 127.0.0.53 stub that
-# doesn't work inside the chroot).
+# Real nameservers for the chroot. ALARM ships /etc/resolv.conf as a symlink to the
+# systemd-resolved stub; remove it first so we write a plain file the chroot actually reads
+# (writing through the symlink from the host shell resolves to the wrong target).
+rm -f "$ROOTFS/etc/resolv.conf"
 printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > "$ROOTFS/etc/resolv.conf"
 cleanup() { umount -R "$ROOTFS/proc" "$ROOTFS/sys" "$ROOTFS/dev" 2>/dev/null || true; }
 trap cleanup EXIT
