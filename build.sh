@@ -34,7 +34,9 @@ mount -t proc  none "$ROOTFS/proc"
 mount -t sysfs none "$ROOTFS/sys"
 mount --bind /dev "$ROOTFS/dev"
 mount --bind /dev/pts "$ROOTFS/dev/pts"
-cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
+# Real nameservers (the host's resolv.conf is often a systemd-resolved 127.0.0.53 stub that
+# doesn't work inside the chroot).
+printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > "$ROOTFS/etc/resolv.conf"
 cleanup() { umount -R "$ROOTFS/proc" "$ROOTFS/sys" "$ROOTFS/dev" 2>/dev/null || true; }
 trap cleanup EXIT
 
