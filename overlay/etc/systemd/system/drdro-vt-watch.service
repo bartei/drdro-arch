@@ -1,0 +1,12 @@
+[Unit]
+Description=drDRO: hand the display to the console on VT switch (Ctrl+Alt+F2), back to the app on tty1
+# Works around sdl2-compat/SDL3 KMSDRM having no VT handling (see vt-watch.sh).
+
+[Service]
+Type=simple
+ExecStart=/opt/drdro/vt-watch.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

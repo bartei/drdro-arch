@@ -1,13 +1,21 @@
 # Runtime the Kivy wheel dlopens at execution (the wheel bundles neither SDL2 nor GL).
-sdl2
+# (sdl2-compat is what Arch ships now — it provides/replaces sdl2; matches the bench Pi.)
+sdl2-compat
 sdl2_image
 sdl2_ttf
 sdl2_mixer
 mesa
 libglvnd
+# Touch: libmtdev lets Kivy's default probesysfs input provider auto-detect the USB touch panel
+# (QDtech MPI7003 1024x600 on the bench Pi 3B). Without it touch is dead; with it, no Kivy config
+# change is needed.
+mtdev
 git
 sudo
 openssh
+# growpart, for the first-boot root partition grow (drdro-growfs.service in the overlay);
+# resize2fs comes with e2fsprogs (already in base).
+cloud-guest-utils
 networkmanager
 wpa_supplicant
 wireless-regdb

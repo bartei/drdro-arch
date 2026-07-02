@@ -1,10 +1,70 @@
-arm_64bit=1
-enable_uart=1
-disable_splash=1
-disable_overscan=1
+# drDRO: linux-rpi's stock /boot/config.txt with the drDRO appliance settings appended under
+# [all] — verbatim from the bench-validated Pi 3B. build.sh copies this file over the one the
+# linux-rpi package installs, so if a future linux-rpi changes its stock config, refresh the
+# stock part here to match.
+
+# For more options and information see:
+# https://www.raspberrypi.com/documentation/computers/config_txt.html
+
+# Some settings may impact device functionality. See link above for details
+
+initramfs initramfs-linux.img followkernel
+
+# Uncomment some or all of these to enable the optional hardware interfaces
+#dtparam=i2c_arm=on
+#dtparam=i2s=on
+#dtparam=spi=on
+
+# Additional overlays and parameters are documented
+# /boot/overlays/README
+
+# Automatically load overlays for detected cameras
+camera_auto_detect=1
+
+# Automatically load overlays for detected DSI displays
 display_auto_detect=1
+
+# Enable DRM VC4 V3D driver
+dtoverlay=vc4-kms-v3d
 max_framebuffers=2
-dtparam=audio=on
+
+# Don't have the firmware create an initial video= setting in cmdline.txt.
+# Use the kernel's default instead.
+disable_fw_kms_setup=1
+
+# Disable compensation for displays with overscan
+disable_overscan=1
+
+# Uncomment if hdmi display is not detected and composite is being output
+#hdmi_force_hotplug=1
+
+# Uncomment if you want to disable wifi or bluetooth respectively
+#dtoverlay=disable-wifi
+#dtoverlay=disable-bt
+
+# Uncomment this to enable infrared communication.
+#dtoverlay=gpio-ir,gpio_pin=17
+#dtoverlay=gpio-ir-tx,gpio_pin=18
+
+# Run as fast as firmware / board allows
+arm_boost=1
+
+[cm4]
+# Enable host mode on the 2711 built-in XHCI USB controller.
+# This line should be removed if the legacy DWC2 controller is required
+# (e.g. for USB device mode) or if USB support is not required.
+otg_mode=1
+
+[cm5]
+dtoverlay=dwc2,dr_mode=host
+
+[all]
+
+# --- drDRO appliance settings (everything above is linux-rpi's stock file) ---
+enable_uart=1
 dtparam=i2c_arm=on
 dtparam=spi=on
-dtoverlay=vc4-kms-v3d
+dtparam=audio=on
+# No firmware rainbow splash at power-on (appliance). Deliberate re-add — the linux-rpi stock
+# config doesn't carry it, and the bench Pi never had it re-applied after the kernel swap.
+disable_splash=1

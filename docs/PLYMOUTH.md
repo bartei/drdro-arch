@@ -3,12 +3,20 @@
 Goal: boot with **no text** — just the drDRO logo + a boot-progress bar — then the app on tty1's
 framebuffer. `Ctrl+Alt+F2` gives a login prompt on tty2 for maintenance.
 
-**Status: staged, OFF by default.** The theme is ported (`plymouth/theme/`), and `build.sh` has a
-guarded block enabled with `ENABLE_PLYMOUTH=1`. Left off until validated on hardware — early KMS
-splash timing on the Pi is the fiddly part (see "Early vs late" below). Build a Plymouth image with:
+**Status: ON by default (late splash), live-validated on the bench Pi 3B (2026-07-02).** The
+theme is ported (`plymouth/theme/`), `build.sh`'s guarded block runs unless `ENABLE_PLYMOUTH=0`.
+Verified: plymouthd paints ~12 s after power-on (root mount), the app starts ~5 s later and takes
+over via `plymouth quit --retain-splash` (no console text anywhere; power-on → splash is a black
+screen — killing that gap needs the early/initramfs splash below). Two refinements beyond the
+original plan, both required in practice:
+- `plymouth-quit.service` + `plymouth-quit-wait.service` are **masked** — otherwise systemd quits
+  the splash at multi-user, seconds before Kivy paints (black gap). `app-run.sh` owns the quit.
+- tty2 login relies on **`drdro-vt-watch.service`** (overlay): sdl2-compat/SDL3's KMSDRM has no VT
+  handling (SDL2-classic did), so without the watcher the app never releases DRM master and
+  Ctrl+Alt+F2 switches the VT invisibly.
 
 ```
-ENABLE_PLYMOUTH=1 sudo -E ./build.sh     # or set the env in the CI workflow
+ENABLE_PLYMOUTH=0 sudo -E ./build.sh     # opt OUT (verbose boot for debugging)
 ```
 
 ## The pieces (all wired in the guarded block)
@@ -31,11 +39,12 @@ ENABLE_PLYMOUTH=1 sudo -E ./build.sh     # or set the env in the CI workflow
 - **Late (what the guarded block does first):** no initramfs changes. `plymouth-start.service` brings
   the splash up once systemd is running (after root mount). Simplest, low-risk — there's a second or
   two of firmware/kernel output before the splash. Good enough for a first cut.
-- **Early (fully silent from power-on):** requires an **initramfs** with the `plymouth` + KMS hooks so
-  the splash appears before the rootfs mounts. On ALARM/Pi this means: enable an initramfs
-  (`mkinitcpio`, add `plymouth` to `HOOKS`, ensure the `vc4`/`drm` KMS modules load early), and point
-  `config.txt` at it (`initramfs initramfs-linux.img followkernel`). This is the part to iterate on
-  the actual boards — get "late" working first, then push the splash earlier.
+- **Early (fully silent from power-on):** requires the `plymouth` + KMS hooks in the **initramfs** so
+  the splash appears before the rootfs mounts. Since the linux-rpi kernel swap, the image already
+  boots via an mkinitcpio initramfs (`initramfs initramfs-linux.img followkernel` is in the stock
+  config.txt) — what's left is adding `plymouth` to mkinitcpio `HOOKS` (and ensuring the `vc4`/`drm`
+  KMS modules load early) and rebuilding. This is the part to iterate on the actual boards — get
+  "late" working first, then push the splash earlier.
 
 ## Verify on hardware
 - Logo + progress bar visible from early boot; **no scrolling text** on the main display.
