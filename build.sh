@@ -201,6 +201,32 @@ if [ "$ENABLE_PLYMOUTH" = "1" ]; then
         > "$ROOTFS/boot/cmdline.txt"
 fi
 
+# --- 5c. Pi 5 bootloader EEPROM self-heal (boot partition files) ---
+# linux-rpi 6.18+ won't boot on Pi 5s with a pre-~Dec-2025 bootloader EEPROM (boot-loops at the
+# diagnostic screen; ALARM forum t=17369/t=17381). The BCM2712 boot ROM loads recovery.bin from
+# the SD FAT BEFORE the EEPROM runs, so these three files make an old Pi 5 heal itself on first
+# power-on: recovery.bin verifies pieeprom.upd against pieeprom.sig, flashes it, renames itself
+# to recovery.000 (that's the re-flash-loop guard), and reboots straight into the OS — the same
+# official mechanism rpi-eeprom-update stages. The `.upd` naming is what makes it auto-continue;
+# `pieeprom.bin` naming would halt on a green screen (that's the Imager utility card).
+# Up-to-date boards just pay one redundant flash+reboot per freshly flashed card. Pi 3 ROMs have
+# no recovery.bin concept (ignored). CAUTION: files are 2712-only — the Pi 4 (2711) ROM also
+# loads recovery.bin from SD, so revisit this before ever shipping a Pi 4 unit.
+# Pinned from raspberrypi/rpi-eeprom firmware-2712/default (the production release stream).
+RPI_EEPROM_COMMIT="aa33b8dc7cee51de4b75580095521dea50407d6e"
+RPI_EEPROM_VER="2026-05-26"
+RPI_EEPROM_URL="https://raw.githubusercontent.com/raspberrypi/rpi-eeprom/$RPI_EEPROM_COMMIT/firmware-2712/default"
+curl -fsSL -o "$ROOTFS/boot/pieeprom.upd" "$RPI_EEPROM_URL/pieeprom-$RPI_EEPROM_VER.bin"
+curl -fsSL -o "$ROOTFS/boot/recovery.bin" "$RPI_EEPROM_URL/recovery.bin"
+sha256sum -c --quiet <<EOF
+fee8bee6a738a1a61004f0770f15534de7a48a2a199dc4c7af7ed73ab04f18dd  $ROOTFS/boot/pieeprom.upd
+73dab9a01c139b7d995ac9a4055ee0d15551d7f8dbf1c2605bae584ef7126e0c  $ROOTFS/boot/recovery.bin
+EOF
+# Same format rpi-eeprom-digest writes: sha256 of the image, then the image timestamp (release
+# date — deterministic, and lets a newer EEPROM's self-update logic see this file as old news).
+{ sha256sum "$ROOTFS/boot/pieeprom.upd" | awk '{print $1}'
+  echo "ts: $(date -u -d "$RPI_EEPROM_VER" +%s)"; } > "$ROOTFS/boot/pieeprom.sig"
+
 # The static resolv.conf (written in step 2) was only for the chroot builds above; at runtime
 # NetworkManager owns DNS and writes /etc/resolv.conf on first activation (DHCP-provided servers).
 rm -f "$ROOTFS/etc/resolv.conf"
