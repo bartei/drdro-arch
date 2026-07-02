@@ -12,6 +12,30 @@ a baked venv (Kivy et al. as **wheels**) → assemble a 2-partition SD image. Re
 `github.com/bartei/drdro-arch`. (Replaced NixOS — too big/fighty — and the parked Buildroot/Yocto
 experiments in `github.com/bartei/drdro-os`.)
 
+## v1.0.1 field-test findings (2026-07-02, flashed release image)
+- **Pi 3B: on-screen keyboard never appears** (tap a text field → nothing). Root cause: Kivy's
+  Linux default is `keyboard_mode=system` (VKeyboard never shows); the old ospi Debian image got
+  it from `export KCFG_KIVY_KEYBOARD_MODE="systemanddock"` in its `start.sh` — our launcher never
+  set it. **FIX BAKED (unverified on hardware): same export added to `overlay/opt/drdro/
+  app-run.sh`.** Quick on-device test without reflash: edit `/opt/drdro/app-run.sh` (tty2 or SSH)
+  and restart `drdro`. Related cosmetic: **mouse pointer parked top-left** = SDL cursor at (0,0);
+  app default `hide_mouse_cursor=False` shows it — toggle it off in the Formats screen (app-config
+  setting; consider flipping the app default for appliances). NOT the keyboard's cause.
+- **Pi 5: boot-loops at the bootloader diagnostic screen.** Image verified Pi5-complete (dissected
+  v1.0.1: bcm2712 dtbs + d0 variants, overlay_map + vc4-kms-v3d-pi5.dtbo, kernel 6.18.37-1-rpi has
+  bcm2712/RP1 drivers, sdhci-brcmstb builtin; kernel_2712.img absent is fine — documented fallback
+  to kernel8.img). Root cause: **linux-rpi 6.18.x needs a recent Pi 5 bootloader EEPROM
+  (~Dec 2025+)** — known ALARM issue (forum t=17369 solved by `rpi-eeprom-update -a`, PSA t=17381).
+  **FIX BAKED (unverified on hardware): EEPROM self-heal on the boot partition** — build.sh 5c
+  ships `recovery.bin` + `pieeprom.upd` + `pieeprom.sig` (pinned rpi-eeprom `firmware-2712/
+  default` 2026-05-26, sha256-verified at build). BCM2712 boot ROM runs recovery.bin from SD
+  before the EEPROM → flashes, renames itself to recovery.000, reboots into the OS (the `.upd`
+  naming = auto-continue; `.bin` naming = Imager's green-screen halt). Expected first power-on on
+  an old Pi 5: brief flash + one automatic reboot, then normal boot. Pi 3 ignores the files;
+  **2712-only — revisit before any Pi 4 unit** (2711 ROM also reads recovery.bin). Manual
+  alternative still valid: RPi Imager → Misc utility images → Bootloader, or RPi OS +
+  `rpi-eeprom-update -a`.
+
 ## Status as of 2026-07-01 (evening session)
 Validated **on real Pi 3B hardware**: boots, app autostarts, hardware GL (VC4 V3D), **RS-485
 serial works**, **USB touchscreen works** (QDtech MPI7003 1024×600), offline first boot,
