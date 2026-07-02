@@ -4,6 +4,10 @@ set -eu
 export HOME=/root
 export KCFG_KIVY_LOG_DIR=/var/log/drdro
 export KCFG_KIVY_LOG_MAXFILES=30
+# On-screen keyboard: Kivy's Linux default is keyboard_mode=system (physical keyboard only, the
+# VKeyboard never shows). systemanddock = docked VKeyboard on touch + real keyboards still work —
+# same setting the ospi Debian image exported in its start.sh.
+export KCFG_KIVY_KEYBOARD_MODE=systemanddock
 export SDL_VIDEODRIVER=kmsdrm
 export KIVY_GL_BACKEND=sdl2
 mkdir -p /var/log/drdro
