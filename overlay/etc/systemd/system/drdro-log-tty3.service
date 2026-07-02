@@ -1,0 +1,19 @@
+[Unit]
+Description=drDRO: app/Kivy log console on tty3 (Ctrl+Alt+F3)
+# app.log carries the app's stdout+stderr (incl. Kivy's console log) across restarts, so tail -F
+# here makes tty3 a log console: switch to it (the VT watcher frees the screen) to see the recent
+# history — e.g. the traceback of the last crash. The kernel console also lives on tty3 (silent
+# boot cmdline), so kernel messages interleave; that's intentional. autovt@tty3 is masked in the
+# build so no login prompt fights this view (tty2 is the login console).
+After=drdro.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/tail -F -n 200 /var/log/drdro/app.log
+StandardOutput=tty
+TTYPath=/dev/tty3
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

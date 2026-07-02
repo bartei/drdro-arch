@@ -33,9 +33,11 @@ On boot, `drdro-growfs.service` grows the root partition + ext4 to fill the actu
 a small build-time slack and any card size works.
 
 Boot is **silent** (Plymouth drDRO splash → app; kernel console on tty3; see
-`docs/PLYMOUTH.md`). `Ctrl+Alt+F2` hands the screen to a tty2 login for maintenance and
-`Ctrl+Alt+F1` returns to the app — via `drdro-vt-watch.service`, which stops/starts the app
-around VT switches because sdl2-compat/SDL3's KMSDRM never releases DRM master on its own.
+`docs/PLYMOUTH.md`). `Ctrl+Alt+F2` hands the screen to a tty2 login for maintenance,
+`Ctrl+Alt+F3` shows the app/Kivy log (a `tail -F` of `/var/log/drdro/app.log` lives on tty3,
+interleaved with kernel messages), and `Ctrl+Alt+F1` returns to the app — via
+`drdro-vt-watch.service`, which stops/starts the app around VT switches because
+sdl2-compat/SDL3's KMSDRM never releases DRM master on its own.
 
 ## Build & CI
 

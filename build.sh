@@ -114,6 +114,9 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     # default, which spews a login banner onto the wire). The kernel console is already tty1-only
     # (see boot/cmdline.txt).
     systemctl mask serial-getty@ttyAMA0.service serial-getty@ttyS0.service serial-getty@ttyAMA10.service
+    # tty3 is the log console (drdro-log-tty3.service tails app.log there) — keep logind from
+    # spawning a login prompt on top of it. tty2 stays the maintenance login (Ctrl+Alt+F2).
+    systemctl mask autovt@tty3.service
 
     # Maintenance user 'default' (password 'default'), passwordless sudo to root, SSH with password
     # login. Ease-of-use over hardening — deliberate for this single-purpose device.

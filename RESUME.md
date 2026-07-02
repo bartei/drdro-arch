@@ -113,6 +113,13 @@ Remote-tested end-to-end with a **uinput virtual keyboard** emitting Ctrl+Alt+F2
 follows, app stops/starts, getty@tty2 spawns). App takes ~2–3 s to release the screen (SDL
 teardown). Physical-keyboard confirmation on the bench still pending.
 
+**tty3 = log console** (`drdro-log-tty3.service`, overlay): `tail -F -n 200 /var/log/drdro/
+app.log` on /dev/tty3 — app.log carries the app's stdout+stderr (incl. Kivy log) across restarts,
+so Ctrl+Alt+F3 shows recent history/tracebacks (the VT watcher stops the app, so it's a
+post-mortem view, not live-follow — that's SSH's job). Kernel console shares tty3 by design.
+autovt@tty3 masked so no login prompt fights the view. Verified live via /dev/vcs3 (remote read
+of the tty3 screen buffer — handy trick).
+
 ## Test hardware / access
 - Pi 3B on the bench: **Ethernet `10.1.2.129`**, **wifi `10.1.2.150`** (both NM; one address per
   interface since the NM-only switch). SSH: `ssh default@10.1.2.129` (pw `default`); `sudo -i`
