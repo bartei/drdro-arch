@@ -6,6 +6,8 @@ sdl2_mixer
 mesa
 libglvnd
 git
+sudo
+openssh
 networkmanager
 wpa_supplicant
 wireless-regdb

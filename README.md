@@ -34,6 +34,12 @@ nature), so the in-app updater can `git pull` + `pip install` a newer version in
   ```
 - **Locally** (on an aarch64 box): `sudo ./build.sh` → `out/drdro-arch-rpi-aarch64.img`.
 
+## Access (dev defaults — intentionally permissive)
+
+- User **`default`** / password **`default`**, in `wheel` with **passwordless sudo** to root.
+- **SSH** enabled with **password login** (`ssh default@<ip>`). The app itself runs as root.
+- Stock ALARM `root`/`root` and `alarm`/`alarm` also still exist.
+
 ## Notes / trade-offs
 
 - **Rolling release, by choice.** Each build pulls current Arch packages + the latest app release

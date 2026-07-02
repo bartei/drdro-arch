@@ -76,6 +76,17 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     # (see boot/cmdline.txt).
     systemctl mask serial-getty@ttyAMA0.service serial-getty@ttyS0.service serial-getty@ttyAMA10.service
 
+    # Maintenance user 'default' (password 'default'), passwordless sudo to root, SSH with password
+    # login. Ease-of-use over hardening — deliberate for this single-purpose device.
+    useradd -m -G wheel -s /bin/bash default
+    echo 'default:default' | chpasswd
+    install -d -m 0750 /etc/sudoers.d
+    echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/10-wheel-nopasswd
+    chmod 0440 /etc/sudoers.d/10-wheel-nopasswd
+    systemctl enable sshd
+    install -d /etc/ssh/sshd_config.d
+    printf 'PasswordAuthentication yes\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/10-drdro.conf
+
     install -d /opt/drdro
     git clone '$APP_REPO' /opt/drdro/app
     git -C /opt/drdro/app checkout -q '${APP_REF:-main}'
