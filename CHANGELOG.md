@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.0.2-beta.1 (2026-07-02)
+
+### Bug Fixes
+
+- Self-heal old Pi 5 bootloader EEPROMs from the boot partition
+  ([`e82e0a3`](https://github.com/bartei/drdro-arch/commit/e82e0a321c7ec77c2cd24bfc91e63dcf122c8144))
+
+- Show the on-screen keyboard (Kivy keyboard_mode=systemanddock)
+  ([`621e02a`](https://github.com/bartei/drdro-arch/commit/621e02a9aa4f32296f40d81ed23beb22fd303fb6))
+
+### Documentation
+
+- Record v1.0.1 field-test findings (vkeyboard, Pi 5 EEPROM)
+  ([`ffd0911`](https://github.com/bartei/drdro-arch/commit/ffd0911ed933227f0915df648b3db20468b3a51e))
+
+
 ## v1.0.1 (2026-07-02)
 
 ### Bug Fixes
