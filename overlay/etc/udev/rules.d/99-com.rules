@@ -1,0 +1,23 @@
+# Create /dev/serial0 (primary UART on the GPIO header) and /dev/serial1, from the firmware's
+# device-tree aliases — board-agnostic (Pi 3 mini-UART/ttyS0, Pi 5 ttyAMA* via RP1, etc.).
+# Verbatim from Raspberry Pi OS (RPi-Distro/raspberrypi-sys-mods 99-com.rules); ALARM omits it, so
+# without this /dev/serial0 doesn't exist and the app can't open the board's port.
+KERNEL=="ttyAMA[0-9]*|ttyS[0-9]*", PROGRAM="/bin/sh -c '\
+        ALIASES=/proc/device-tree/aliases; \
+        TTYNODE=$$(readlink /sys/class/tty/%k/device/of_node | sed 's/base/:/' | cut -d: -f2); \
+        if [ -e $$ALIASES/bluetooth ] && [ $$TTYNODE/bluetooth = $$(strings $$ALIASES/bluetooth) ]; then \
+            echo 1; \
+        elif [ -e $$ALIASES/console ]; then \
+            if [ $$TTYNODE = $$(strings $$ALIASES/console) ]; then \
+                echo 0;\
+            else \
+                exit 1; \
+            fi \
+        elif [ $$TTYNODE = $$(strings $$ALIASES/serial0) ]; then \
+            echo 0; \
+        elif [ $$TTYNODE = $$(strings $$ALIASES/serial1) ]; then \
+            echo 1; \
+        else \
+            exit 1; \
+        fi \
+'", SYMLINK+="serial%c"
