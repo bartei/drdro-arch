@@ -45,11 +45,13 @@ printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > "$ROOTFS/etc/resolv.conf"
 cleanup() { umount -R "$ROOTFS/proc" "$ROOTFS/sys" "$ROOTFS/dev" 2>/dev/null || true; }
 trap cleanup EXIT
 
-# --- 3. resolve the app ref (latest release tag by default) ---
+# --- 3. resolve the app ref (latest STABLE release tag by default) ---
+# Prerelease tags (v1.4.1-beta.N, published from the app's dev branch) sort ABOVE their
+# stable release in -v:refname order — filter them out so the image never bakes a beta.
 if [ "$APP_REF" = "latest" ]; then
     APP_REF="$(git ls-remote --tags --refs --sort=-v:refname "$APP_REPO" 'v*' \
-               | head -n1 | sed 's#.*/##')"
-    echo "build.sh: latest release tag = ${APP_REF:-<none>}"
+               | sed 's#.*/##' | grep -v -e - | head -n1)"
+    echo "build.sh: latest stable release tag = ${APP_REF:-<none>}"
 fi
 
 # --- 4. pacman runtime + git-clone app + pip install into a baked venv ---
