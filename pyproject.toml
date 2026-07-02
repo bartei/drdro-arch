@@ -4,8 +4,6 @@
 # the image stamps itself via DRDRO_VERSION at build time (/etc/drdro-release).
 
 [tool.semantic_release]
-# Any commit on a release branch produces at least a patch release (standard practice).
-patch_without_tag = true
 # First release is v1.0.0, not v0.1.0 — the image ships to real machines.
 allow_zero_version = false
 hvcs = "github"
