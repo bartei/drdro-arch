@@ -62,8 +62,9 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     sed -i 's/^CheckSpace/#CheckSpace/' /etc/pacman.conf
     # Never extract man/info/docs or non-English locales (~275 MB across the image) — applies to
     # the -Syu below and to any pacman use in the field; the tarball's preexisting files are rm'd
-    # in the slim-down at the end.
-    printf 'NoExtract = usr/share/man/* usr/share/info/* usr/share/doc/* usr/share/gtk-doc/*\nNoExtract = usr/share/locale/* !usr/share/locale/en* !usr/share/locale/locale.alias\n' >> /etc/pacman.conf
+    # in the slim-down at the end. Must land INSIDE [options] — appending to the end of ALARM's
+    # pacman.conf puts it in the [aur] repo section where pacman ignores it with a warning.
+    sed -i '/^\[options\]/a NoExtract = usr/share/man/* usr/share/info/* usr/share/doc/* usr/share/gtk-doc/*\nNoExtract = usr/share/locale/* !usr/share/locale/en* !usr/share/locale/locale.alias' /etc/pacman.conf
     pacman -Syu --noconfirm
 
     # Kernel: replace ALARM's mainline kernel + U-Boot with the RPi downstream kernel. Proven on

@@ -1,7 +1,7 @@
 [Unit]
 Description=drDRO: grow root partition + filesystem to fill the SD card
 # The image ships with a build-size root partition (content + slack); this expands it to the
-# actual card. Safe to run every boot: growpart no-ops (NOCHANGE) once the partition is full-size.
+# actual card. Safe to run every boot: a sysfs size compare short-circuits once full-size.
 After=local-fs.target
 Before=drdro.service
 

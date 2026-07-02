@@ -13,9 +13,6 @@ mtdev
 git
 sudo
 openssh
-# growpart, for the first-boot root partition grow (drdro-growfs.service in the overlay);
-# resize2fs comes with e2fsprogs (already in base).
-cloud-guest-utils
 networkmanager
 wpa_supplicant
 wireless-regdb

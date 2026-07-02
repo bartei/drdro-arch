@@ -29,8 +29,8 @@ free for the RS-485 board link (`console=tty1`, no serial console). Root is writ
 nature), so the in-app updater can `git pull` + `pip install` a newer version in the field.
 
 On boot, `drdro-growfs.service` grows the root partition + ext4 to fill the actual SD card
-(growpart + online resize2fs; no-ops once full-size), so the image ships with only a small
-build-time slack and any card size works.
+(sfdisk + partx + online resize2fs; short-circuits once full-size), so the image ships with only
+a small build-time slack and any card size works.
 
 Boot is **silent** (Plymouth drDRO splash → app; kernel console on tty3; see
 `docs/PLYMOUTH.md`). `Ctrl+Alt+F2` hands the screen to a tty2 login for maintenance and

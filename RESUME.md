@@ -51,12 +51,15 @@ identically into `build.sh`:
 
 **Rootfs auto-grow DONE (same session), live-tested on the bench Pi** (the old "auto-grows on
 first boot" comment in build.sh had been false): new `drdro-growfs.service` + `/opt/drdro/
-growfs.sh` in the overlay (enabled via shipped wants symlink), `cloud-guest-utils` (growpart) in
-packages.txt. growpart grows p2 to the card, then online `resize2fs`. Stampless — runs every boot,
-no-ops with growpart's NOCHANGE (exit 1) once full-size, so moving to a bigger card re-grows.
-Live test: p2 4.8G → 29.5G on the 32 GB bench card, while mounted, then clean reboot with the
-NOCHANGE path. Build-time root slack tightened (135%+256 → 115%+128 MB) since the card, not the
-image, now provides field headroom.
+growfs.sh` in the overlay (enabled via shipped wants symlink). **Pure util-linux**: sysfs size
+compare → `sfdisk ",+"` grows p2 → `partx -u` → online `resize2fs` (v1 used growpart, but Arch's
+`cloud-guest-utils` DEPENDS ON PYTHON and broke the slim-down in CI — sfdisk/partx is what
+growpart wraps anyway). Stampless — runs every boot, short-circuits on the size compare once
+full-size (no disk writes), so moving to a bigger card re-grows. Live test: p2 4.8G → 29.5G on
+the 32 GB bench card while mounted (via the growpart-era version; the sfdisk rewrite is verified
+on the short-circuit path live — its grow path gets its first real run on the next fresh flash).
+Build-time root slack tightened (135%+256 → 115%+128 MB) since the card, not the image, now
+provides field headroom.
 
 **NOT yet verified in a fresh image**: the baked changes (kernel swap + slim-down) haven't been
 through CI + a reflash yet. Next step: push/`gh workflow run build-arch`, flash, and check parity
@@ -174,6 +177,10 @@ Watch a run to completion (external `jq` NOT on PATH — use `gh -q`):
   `base-devel` stays (compiles CPython).
 - Touch: Kivy needs **`mtdev`**; default `probesysfs` then auto-detects — no Kivy config change.
 - `/dev/serial0` doesn't exist on stock ALARM — shipped `99-com.rules` udev rule creates it.
+- Arch's `cloud-guest-utils` (growpart) **depends on system python** — clashes with the
+  slim-down's python removal (broke CI once). growfs.sh uses raw sfdisk/partx/resize2fs instead.
+- pacman.conf directives must land in `[options]` — ALARM's file ends with an `[aur]` section, so
+  blind `>>` appends get ignored with a "directive not recognized" warning (bit us with NoExtract).
 - Slimming: `pacman -Rns` fails the whole transaction if ANY named package is missing — the
   vi/vim names vary across tarball generations, hence the `$(pacman -Qq ... 2>/dev/null|sort -u)`
   guard in build.sh. `guile` can't go while `make` stays (linked, not dlopened). `default-cursors`
