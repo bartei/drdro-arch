@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=drDRO
+Description=drDRO boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/drdro
+ScriptFile=/usr/share/plymouth/themes/drdro/drdro.script

@@ -9,4 +9,6 @@ export KIVY_GL_BACKEND=sdl2
 mkdir -p /var/log/drdro
 cd /opt/drdro/app
 source .venv/bin/activate
+# Hand off from the Plymouth splash (kept until now) to the app — no-op if Plymouth isn't installed.
+command -v plymouth >/dev/null 2>&1 && plymouth quit --retain-splash 2>/dev/null || true
 exec python -m dro.main

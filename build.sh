@@ -19,6 +19,7 @@ ALARM_URL="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-aarch64-latest.tar.gz"
 APP_REPO="https://github.com/bartei/drdro-software-f4.git"
 APP_REF="${APP_REF:-latest}"   # "latest" = newest release tag; or set a tag/branch/rev
 BOOT_MB=256
+ENABLE_PLYMOUTH="${ENABLE_PLYMOUTH:-0}"   # 1 = silent boot + drDRO splash (see docs/PLYMOUTH.md)
 
 [ "$(id -u)" -eq 0 ] || { echo "build.sh: must run as root (chroot + mke2fs -d)"; exit 1; }
 mkdir -p "$WORK" "$OUT"
@@ -111,6 +112,22 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
 cp -a "$HERE/overlay/." "$ROOTFS/"
 cp "$HERE/boot/config.txt"  "$ROOTFS/boot/config.txt"
 cp "$HERE/boot/cmdline.txt" "$ROOTFS/boot/cmdline.txt"
+
+# --- 5b. optional: silent boot + drDRO Plymouth splash (see docs/PLYMOUTH.md) ---
+if [ "$ENABLE_PLYMOUTH" = "1" ]; then
+    echo "build.sh: enabling Plymouth silent boot"
+    install -d "$ROOTFS/usr/share/plymouth/themes/drdro" "$ROOTFS/etc/plymouth"
+    cp "$HERE"/plymouth/theme/* "$ROOTFS/usr/share/plymouth/themes/drdro/"
+    cp "$HERE/plymouth/plymouthd.conf" "$ROOTFS/etc/plymouth/plymouthd.conf"
+    chroot "$ROOTFS" /bin/bash -euo pipefail -c "
+        pacman -S --noconfirm --needed plymouth
+        plymouth-set-default-theme drdro
+        systemctl mask getty@tty1.service    # tty1 is for the splash -> app; login on tty2 (Ctrl+Alt+F2)
+    "
+    # Quiet cmdline: kernel console off the main display (tty3), no boot text, show the splash.
+    echo "console=tty3 quiet loglevel=3 vt.global_cursor_default=0 logo.nologo splash plymouth.ignore-serial-consoles root=/dev/mmcblk0p2 rw rootwait rootfstype=ext4 fsck.repair=yes" \
+        > "$ROOTFS/boot/cmdline.txt"
+fi
 
 cleanup; trap - EXIT
 

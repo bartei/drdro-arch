@@ -1,0 +1,41 @@
+// drDRO boot splash: centered logo on black + a thin boot-progress bar driven by systemd/plymouth.
+// Ported from the Debian (ospi) variant; adds the progress bar.
+
+screen_width  = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
+Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
+
+// --- centered logo (scaled down to fit; never upscaled) ---
+logo = Image("splash.png");
+lw = logo.GetWidth();
+lh = logo.GetHeight();
+max_w = screen_width  * 0.5;
+max_h = screen_height * 0.5;
+scale = 1;
+if (lw > max_w) scale = max_w / lw;
+if (lh * scale > max_h) scale = max_h / lh;
+logo = logo.Scale(lw * scale, lh * scale);
+logo_sprite = Sprite(logo);
+logo_sprite.SetPosition((screen_width - lw * scale) / 2, (screen_height - lh * scale) / 2 - screen_height * 0.05, 0);
+
+// --- progress bar (bar.png is a white pixel we scale to width) ---
+bar_w   = screen_width * 0.4;
+bar_h   = 4;
+bar_x   = (screen_width - bar_w) / 2;
+bar_y   = screen_height * 0.72;
+bar_img = Image("bar.png");
+
+fun on_progress(duration, progress) {
+    fill = bar_img.Scale(bar_w * progress, bar_h);
+    fill_sprite = Sprite(fill);
+    fill_sprite.SetPosition(bar_x, bar_y, 1);
+}
+Plymouth.SetBootProgressFunction(on_progress);
+
+// --- optional status text (small, bottom); harmless if unused ---
+msg = Sprite();
+msg.SetPosition(screen_width * 0.05, screen_height * 0.92, 1);
+fun on_message(text) { msg.SetImage(Image.Text(text, 0.6, 0.6, 0.6)); }
+Plymouth.SetUpdateStatusFunction(on_message);
