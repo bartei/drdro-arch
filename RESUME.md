@@ -146,8 +146,18 @@ Watch a run to completion (external `jq` NOT on PATH — use `gh -q`):
    Remaining refinement: **early splash** — add the `plymouth` mkinitcpio hook (+ early vc4 KMS)
    to cover the ~12 s black gap between power-on and root mount. Visual sign-off on the bench
    (splash look, progress bar) still pending user eyes.
-6. **Universal Pi 3/4/5 image** — linux-rpi + firmware dtb auto-select makes this mostly a
-   test-matrix problem now.
+6. **Universal Pi 3/4/5 image** — believed compatible NOW, needs board testing (analysis
+   2026-07-02): kernel8.img is the RPi downstream kernel for 2710/2711/2712; linux-rpi ships
+   bcm2711 (Pi 4/400/CM4) and bcm2712 (Pi 5) dtbs and the firmware picks per board;
+   raspberrypi-bootloader ships start4*.elf (Pi 4; Pi 5 boots from EEPROM, ignores them); mesa
+   v3d covers V3D 4.2 (Pi 4) and 7.x (Pi 5); 99-com.rules maps /dev/serial0 per board incl.
+   Pi 5's RP1 ttyAMA*; serial-getty@ttyAMA10 (Pi 5 debug UART) already masked; Pi 4/5 wifi is
+   BCM43455 = same brcmfmac → same FWSUP fix (that chip has the most upstream reports).
+   Pi 5 caveats: boots via the documented kernel_2712.img→kernel8.img fallback (4K pages — fine;
+   ship `linux-rpi-16k` alongside later if 16K-page perf matters); SD is still mmcblk0 but
+   NVMe/USB boot would need a root= change. Per-board shakeout checklist: boots to app, GL
+   renderer = V3D (not llvmpipe), touch, `/dev/serial0` exists + RS-485 comms, wifi connect,
+   Ctrl+Alt+F2 handoff, growfs on first boot.
 7. Serial: app repo's `config.ini` points at a USB CH340 by-id path; `build.sh` forces
    `serial_port = /dev/serial0` (GPIO) — right for the bench Pi. Revisit if a unit uses the dongle.
 8. ~~Rootfs auto-grow~~ DONE (drdro-growfs.service, live-tested; see Status).
