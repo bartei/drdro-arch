@@ -36,15 +36,13 @@ jobs:
       - name: Build image
         run: sudo WORK="$WORK" OUT="$OUT" ./build.sh
 
-      - name: Compress
-        # build.sh runs under sudo, so $OUT is root-owned; compress as root too (the .zst lands
-        # world-readable, so the upload step can still read it).
-        run: sudo zstd -19 -T0 "$OUT/drdro-arch-rpi-aarch64.img" -o "$OUT/drdro-arch-rpi-aarch64.img.zst"
-
       - name: Upload image
+        # No manual zstd: upload-artifact always zips. Upload the raw .img and let the zip compress
+        # it (the image is root-owned but world-readable, so the non-sudo upload can read it).
+        # Download unzips straight to a flashable .img.
         uses: actions/upload-artifact@v4
         with:
           name: drdro-arch-rpi-aarch64
-          path: /mnt/arch/out/drdro-arch-rpi-aarch64.img.zst
+          path: /mnt/arch/out/drdro-arch-rpi-aarch64.img
           if-no-files-found: error
-          compression-level: 0
+          compression-level: 9
