@@ -7,6 +7,8 @@ mesa
 libglvnd
 git
 networkmanager
+wpa_supplicant
+wireless-regdb
 mpg123
 alsa-lib
 ttf-dejavu

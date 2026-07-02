@@ -9,6 +9,9 @@ WorkingDirectory=/opt/drdro/app
 ExecStart=/opt/drdro/app-run.sh
 Restart=on-failure
 RestartSec=5
+# Create /var/log/drdro before the unit starts, so the append: targets below can be opened on the
+# very first boot (systemd opens StandardOutput *before* ExecStart, so app-run.sh's mkdir is too late).
+LogsDirectory=drdro
 StandardOutput=append:/var/log/drdro/app.log
 StandardError=append:/var/log/drdro/app.log
 
