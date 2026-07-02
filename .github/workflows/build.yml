@@ -1,9 +1,11 @@
 name: build-arch
 
+# CI shakeout build (unversioned artifact). Releases are release.yml's job — it rebuilds with
+# the real version baked in and publishes to a GitHub release.
 on:
   workflow_dispatch:        # run on demand (build a new image when we want one)
   push:
-    branches: [main]
+    branches: [main, dev]
     paths: ['build.sh', 'packages.txt', 'overlay/**', 'boot/**', '.github/workflows/build.yml']
 
 concurrency:

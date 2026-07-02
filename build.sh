@@ -20,6 +20,7 @@ ALARM_URL="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-aarch64-latest.tar.gz"
 APP_REPO="https://github.com/bartei/drdro-software-f4.git"
 APP_REF="${APP_REF:-latest}"   # "latest" = newest release tag; or set a tag/branch/rev
 BOOT_MB=128   # /boot content is ~66 MB (kernel8 + initramfs + firmware blobs + overlays) — 2x headroom
+DRDRO_VERSION="${DRDRO_VERSION:-dev}"   # semantic-release passes the real version at release time
 ENABLE_PLYMOUTH="${ENABLE_PLYMOUTH:-1}"   # silent boot + drDRO splash (see docs/PLYMOUTH.md); 0 = verbose boot
 
 [ "$(id -u)" -eq 0 ] || { echo "build.sh: must run as root (chroot + mke2fs -d)"; exit 1; }
@@ -176,6 +177,8 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
 cp -a "$HERE/overlay/." "$ROOTFS/"
 cp "$HERE/boot/config.txt"  "$ROOTFS/boot/config.txt"
 cp "$HERE/boot/cmdline.txt" "$ROOTFS/boot/cmdline.txt"
+# The image knows its own release version (support: `cat /etc/drdro-release` on a device).
+echo "VERSION=${DRDRO_VERSION}" > "$ROOTFS/etc/drdro-release"
 
 # --- 5b. optional: silent boot + drDRO Plymouth splash (see docs/PLYMOUTH.md) ---
 if [ "$ENABLE_PLYMOUTH" = "1" ]; then

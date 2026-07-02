@@ -1,0 +1,28 @@
+# drdro-arch is not a Python project — this file exists only to configure
+# python-semantic-release (the same release tooling as drdro-software-f4; see
+# .github/workflows/release.yml). Versioning is tag-only: no source file carries the version,
+# the image stamps itself via DRDRO_VERSION at build time (/etc/drdro-release).
+
+[tool.semantic_release]
+# Any commit on a release branch produces at least a patch release (standard practice).
+patch_without_tag = true
+# First release is v1.0.0, not v0.1.0 — the image ships to real machines.
+allow_zero_version = false
+hvcs = "github"
+tag_format = "v{version}"
+# Runs inside `semantic-release version` with NEW_VERSION exported: builds the SD image with
+# the version baked in and drops the versioned, compressed, checksummed artifact into dist/.
+build_command = "scripts/build-release.sh"
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.branches.dev]
+match = "dev"
+prerelease = true
+prerelease_token = "beta"
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true

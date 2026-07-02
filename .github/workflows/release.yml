@@ -1,0 +1,98 @@
+name: release
+
+# Semantic release (same tooling as drdro-software-f4: python-semantic-release).
+# push to dev  -> next version as a BETA prerelease (v1.2.3-beta.N, GitHub prerelease)
+# push to main -> OFFICIAL stable release (v1.2.3)
+# The SD image is built INSIDE `semantic-release version` (build_command in pyproject.toml) so
+# the artifact is named with — and stamped with (/etc/drdro-release) — the exact version.
+
+on:
+  push:
+    branches: [main, dev]
+
+permissions: write-all
+
+concurrency: release
+
+jobs:
+  release:
+    name: semantic-release (version + image + changelog)
+    runs-on: ubuntu-24.04-arm   # native ARM64 — the image build runs in build_command, no qemu
+    timeout-minutes: 120
+    # Don't run on the changelog commit semantic-release pushes back.
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    env:
+      WORK: /mnt/arch/work      # build on the big ephemeral /mnt volume, not the small root disk
+      OUT: /mnt/arch/out
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # semantic-release needs full history + tags
+
+      - name: Free disk + prep /mnt scratch
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/hostedtoolcache /usr/share/dotnet || true
+          sudo mkdir -p /mnt/arch && sudo chown -R "$USER" /mnt/arch
+          df -h / /mnt
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libarchive-tools dosfstools mtools e2fsprogs util-linux git curl zstd
+          pipx install python-semantic-release
+
+      - name: Semantic release (version -> build image -> tag -> publish + assets)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          semantic-release version
+          semantic-release publish
+
+      - name: Changelog report (job summary)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ls dist/*.img.zst >/dev/null 2>&1; then
+            TAG="$(git describe --tags --abbrev=0)"
+            {
+              echo "## Released ${TAG} (${GITHUB_REF_NAME})"
+              echo
+              gh release view "$TAG" --json body -q .body
+              echo
+              echo '### Assets'
+              echo '```'
+              ls -lh dist/
+              cat dist/*SHA256SUMS.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No release for this push (no version bump)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # ---------------------------------------------------------------------------------------
+      # Discord release announcement — PLACEHOLDER until the webhook secret exists.
+      # TODO: create the repo secret DISCORD_RELEASE_WEBHOOK (Discord: Server Settings ->
+      # Integrations -> Webhooks -> copy URL; GitHub: repo Settings -> Secrets -> Actions).
+      # Once the secret is set, every OFFICIAL stable release (main) is announced automatically;
+      # betas from dev stay quiet. Until then this step logs that it skipped.
+      # ---------------------------------------------------------------------------------------
+      - name: Announce stable release on Discord
+        if: github.ref_name == 'main'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls dist/*.img.zst >/dev/null 2>&1 || { echo "No release this push — nothing to announce."; exit 0; }
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "DISCORD_RELEASE_WEBHOOK not configured yet — skipping announcement (placeholder)."
+            exit 0
+          fi
+          TAG="$(git describe --tags --abbrev=0)"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+          NOTES="$(gh release view "$TAG" --json body -q .body | head -c 1500)"
+          jq -n --arg tag "$TAG" --arg url "$URL" --arg notes "$NOTES" \
+            '{embeds: [{title: ("drDRO OS " + $tag + " released"), url: $url, description: $notes, color: 5763719}]}' \
+            | curl -sf -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK"
+          echo "Announced $TAG on Discord."

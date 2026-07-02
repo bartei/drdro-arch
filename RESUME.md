@@ -132,6 +132,19 @@ of the tty3 screen buffer — handy trick).
   `/var/log/drdro/`. Kivy config `/root/.kivy/config.ini` (stock). App `config.ini`:
   `serial_port = /dev/serial0` (build.sh sed).
 
+## Releases — semantic-release (2026-07-02)
+Standard practice mirrored from drdro-software-f4 (**python-semantic-release**, conventional
+commits): `dev` push → **beta prerelease** (vX.Y.Z-beta.N), `main` push → **stable**. Config in
+`pyproject.toml` (tag-only versioning — no version file; `allow_zero_version=false` so the first
+release is v1.0.0; `patch_without_tag=true` = every release-branch push releases). The image is
+built INSIDE `semantic-release version` via `build_command = scripts/build-release.sh`
+(NEW_VERSION env → `DRDRO_VERSION` → image stamps `/etc/drdro-release`; artifact
+`dist/drdro-arch-vX.Y.Z-rpi-aarch64.img.zst` + SHA256SUMS uploaded to the GitHub release by
+`publish`). `release.yml` runs on the native arm runner, guards against the `chore(release):`
+changelog commit, writes the changelog to the job summary, and has a **Discord announce step
+(placeholder)** — create repo secret `DISCORD_RELEASE_WEBHOOK` to activate; stable releases only.
+build.yml (unversioned CI artifact) still runs on build-input changes for main+dev.
+
 ## Build & CI
 ```
 gh workflow run build-arch -R bartei/drdro-arch          # or push to main

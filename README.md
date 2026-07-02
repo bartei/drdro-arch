@@ -50,6 +50,23 @@ sdl2-compat/SDL3's KMSDRM never releases DRM master on its own.
   ```
 - **Locally** (on an aarch64 box): `sudo ./build.sh` → `out/drdro-arch-rpi-aarch64.img`.
 
+## Releases (semantic-release)
+
+Same tooling as `drdro-software-f4` (python-semantic-release, conventional commits):
+
+- **push to `dev`** → next version as a **beta prerelease** (`vX.Y.Z-beta.N`).
+- **push to `main`** → **official stable release** (`vX.Y.Z`).
+- Every release carries a **full changelog** (release notes + `CHANGELOG.md` + CI job summary)
+  and a versioned artifact: `drdro-arch-vX.Y.Z-rpi-aarch64.img.zst` + `SHA256SUMS` —
+  the image also stamps itself (`cat /etc/drdro-release` on a device).
+- Stable releases will be **announced on Discord** once the `DISCORD_RELEASE_WEBHOOK` secret is
+  configured (placeholder step in `release.yml`; betas stay quiet).
+
+```
+zstd -d drdro-arch-vX.Y.Z-rpi-aarch64.img.zst
+sudo dd if=drdro-arch-vX.Y.Z-rpi-aarch64.img of=/dev/sdX bs=4M conv=fsync status=progress
+```
+
 ## Access (dev defaults — intentionally permissive)
 
 - User **`default`** / password **`default`**, in `wheel` with **passwordless sudo** to root.
