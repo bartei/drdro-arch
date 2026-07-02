@@ -62,6 +62,20 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     pacman -S --noconfirm --needed ${PKGS[*]}
     systemctl enable NetworkManager
 
+    # Trim firmware: a Pi needs only Broadcom (onboard wifi/BT). The -Syu pulls the full split
+    # linux-firmware set; drop the desktop/other-vendor firmware (no such hardware on a Pi) — those
+    # are the big ones (nvidia/amdgpu/radeon/intel are hundreds of MB each). -Rdd: targeted removal,
+    # ignore the linux-firmware meta's dep so we can drop it + these without touching broadcom/whence.
+    pacman -Rdd --noconfirm \
+        linux-firmware linux-firmware-amdgpu linux-firmware-nvidia linux-firmware-radeon \
+        linux-firmware-intel linux-firmware-cirrus linux-firmware-mediatek \
+        2>/dev/null || true
+
+    # UART is the RS-485 board link only — no login prompt on it (ALARM enables a serial getty by
+    # default, which spews a login banner onto the wire). The kernel console is already tty1-only
+    # (see boot/cmdline.txt).
+    systemctl mask serial-getty@ttyAMA0.service serial-getty@ttyS0.service serial-getty@ttyAMA10.service
+
     install -d /opt/drdro
     git clone '$APP_REPO' /opt/drdro/app
     git -C /opt/drdro/app checkout -q '${APP_REF:-main}'
