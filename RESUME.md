@@ -45,12 +45,15 @@ experiments in `github.com/bartei/drdro-os`.)
   (build.sh disable list now networkd-only), 20-dns.conf deleted, build.sh restores the stub
   symlink instead of rm-ing it. NM auto-feeds resolved via D-Bus; resolved's fallback servers
   (Quad9/Cloudflare/Google) keep DNS alive even on sites with broken DHCP DNS.
-- **5 GHz wifi on Pi 5 — OPEN: brcmfmac FIRMWARE TRAP.** Joining `raspberry5` crashes the
-  BCM43455's firmware (`brcmf_sdio_checkdied: firmware trap in dongle`, type 0x4, fw 7.45.265),
-  radio re-probes, NM misreports "secrets are required". 2.4 GHz connect + DHCP works on the
-  same boot. Test plan: (1) retry 5 GHz with `feature_disable=0x82000` removed (tuned on the Pi
-  3's 43430 — may be unneeded or trap-inducing on 43455), (2) newer brcmfmac firmware blob,
-  (3) set a regulatory domain. Don't regress the 2.4 GHz FWSUP fix while testing.
+- **5 GHz wifi on Pi 5 — RESOLVED (2026-07-03): works; the failure was a wrong password.**
+  Live-proven on the bench Pi 5: the known-good `raspberry` profile pinned to `band a` associates
+  on ch48/5240 MHz, completes the WPA2 software 4-way handshake (with our `feature_disable=
+  0x82000` active — `iw list` shows no 4WAY offload), gets DHCP + DNS; back on band-auto NM picks
+  the 5 GHz BSS by itself. The `raspberry5` attempts failed with a REAL `WRONG_KEY` from the AP
+  (assoc on 5 GHz succeeded, 4-way rejected — its PSK is NOT raspberry3; get the right one before
+  blaming the stack). The earlier `brcmfmac firmware trap in dongle` from the first field session
+  did NOT reproduce in today's controlled attempts — treat as a one-off (likely the crash-loop
+  era retry storm); reopen only if seen again on a healthy system.
 
 ## Status as of 2026-07-01 (evening session)
 Validated **on real Pi 3B hardware**: boots, app autostarts, hardware GL (VC4 V3D), **RS-485
