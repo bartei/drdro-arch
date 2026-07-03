@@ -25,7 +25,8 @@ experiments in `github.com/bartei/drdro-os`.)
   the Pi 5's 600 mA USB budget (no 5 A USB-PD supply negotiated) → rail collapses at USB coldplug
   → hard reset, nothing in the journal (it just stops at ~3.9 s monotonic). User-confirmed: boots
   fine with the screen unplugged (3.5 min uptime, wifi tests ran there). Pi 3/4 don't negotiate/
-  cap, hence "works on other Pis". **FIX BAKED (unverified): `[pi5] usb_max_current_enable=1`**
+  cap, hence "works on other Pis". **FIX VERIFIED (v1.0.2-beta.2 on the Pi 5: boots to the app
+  with the screen attached, no loop): `[pi5] usb_max_current_enable=1`**
   in boot/config.txt (also applied live to the bench card + its `config.txt.orig`/
   `cmdline.txt.orig` backups; card cmdline is still the VERBOSE debug one — restore from .orig
   once the Pi 5 boots clean). Collateral of the first crash-session: board died mid-first-boot
@@ -34,12 +35,16 @@ experiments in `github.com/bartei/drdro-os`.)
   verified clean (e2fsck -fn + pristine venv in the artifact). Hardening TODO: order
   `drdro.service` After=`drdro-growfs.service` so the first-boot resize never runs under app I/O;
   until then, boot fresh flashes on the Pi 3 first.
-- **DNS dead on EVERY fresh boot (eth + wifi) — FIXED (unverified).** Arch systemd's tmpfiles
-  factory recreates `/etc/resolv.conf` each boot as a symlink to systemd-resolved's stub;
-  resolved is disabled, and NM rc-manager=auto sees the symlink and defers DNS to the absent
-  daemon (journal: `dns-mgr: init: dns=systemd-resolved rc-manager=symlink`). Address via DHCP
-  works, resolution doesn't. **FIX BAKED: overlay `20-dns.conf` → `[main] dns=default` +
-  `rc-manager=file`** (also applied live to the card + dangling symlink removed).
+- **DNS dead on EVERY fresh boot (eth + wifi) — SOLVED: systemd-resolved re-enabled
+  (live-verified on the Pi 5 across a reboot).** Root cause: Arch systemd's tmpfiles factory
+  recreates `/etc/resolv.conf` each boot as a symlink to resolved's stub; with resolved disabled
+  NM deferred DNS to the absent daemon (dangling symlink, no resolution). The beta.2 attempt
+  (`20-dns.conf`: dns=default + rc-manager=file) ALSO failed — rc-manager=file FOLLOWS the
+  symlink and tried to write into the nonexistent `/run/systemd/resolve/` (journal: "could not
+  commit DNS changes"). Final: stop fighting the factory wiring — resolved enabled again
+  (build.sh disable list now networkd-only), 20-dns.conf deleted, build.sh restores the stub
+  symlink instead of rm-ing it. NM auto-feeds resolved via D-Bus; resolved's fallback servers
+  (Quad9/Cloudflare/Google) keep DNS alive even on sites with broken DHCP DNS.
 - **5 GHz wifi on Pi 5 — OPEN: brcmfmac FIRMWARE TRAP.** Joining `raspberry5` crashes the
   BCM43455's firmware (`brcmf_sdio_checkdied: firmware trap in dongle`, type 0x4, fw 7.45.265),
   radio re-probes, NM misreports "secrets are required". 2.4 GHz connect + DHCP works on the
@@ -128,13 +133,12 @@ offload path. Note the earlier multi-AP theory is dead too (untested single-AP d
 ## Double DHCP — SOLVED (2026-07-02): NetworkManager is the sole network owner
 The image used to ship **both systemd-networkd (ALARM default) and NetworkManager enabled** — two
 DHCP clients per port, so the bench Pi's ethernet held two leases at once (.124 + .129, the
-"wandering IP"). Fixed live and baked into `build.sh`: **networkd + resolved + all their sockets
-+ systemd-network-generator disabled** (`|| true` guard — socket names drift across systemd
-releases), NM owns everything. DNS: without resolved, **NM writes /etc/resolv.conf** with the
-DHCP-provided servers (nsswitch's nss-resolve falls back to plain dns automatically); build.sh now
-also rm's the chroot-era static resolv.conf (1.1.1.1) from the image so first boot starts clean.
-Live-verified across a reboot: one address per interface, DNS resolves, wifi + app fine. `iwd`
-debug leftover also removed from the live Pi.
+"wandering IP"). Fixed live and baked into `build.sh`: **networkd + its sockets + systemd-network-generator
+disabled** (`|| true` guard — socket names drift across systemd releases), NM owns the
+interfaces. Live-verified across a reboot: one address per interface. `iwd` debug leftover also
+removed from the live Pi. NOTE 2026-07-03: **systemd-resolved was originally disabled here too —
+that broke DNS on every fresh boot and is REVERTED** (resolved re-enabled; see the DNS item in
+the field-test findings above — only networkd stays off).
 
 ## VT switching (Ctrl+Alt+F2) — SOLVED (2026-07-02): drdro-vt-watch
 On Debian it worked because **SDL2-classic** muted the console keyboard, handled Ctrl+Alt+Fn

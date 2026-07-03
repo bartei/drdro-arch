@@ -84,19 +84,22 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
 
     pacman -S --noconfirm --needed ${PKGS[*]}
 
-    # NetworkManager is the ONLY network owner (the app's UI drives it via nmcli). The ALARM
-    # tarball ships systemd-networkd (with a catch-all wired .network) and systemd-resolved
-    # enabled — left on, networkd + NM each run a DHCP client on the same port and the device
-    # holds two ethernet leases at once (proven on the bench Pi: .124 + .129, a 'wandering' IP).
-    # Disable the lot; socket unit names drift across systemd releases, so tolerate absent ones.
-    # DNS: without resolved, NM writes /etc/resolv.conf itself (nsswitch falls back from
-    # nss-resolve to dns automatically).
+    # NetworkManager is the ONLY interface owner (the app's UI drives it via nmcli). The ALARM
+    # tarball ships systemd-networkd (with a catch-all wired .network) enabled — left on,
+    # networkd + NM each run a DHCP client on the same port and the device holds two ethernet
+    # leases at once (proven on the bench Pi: .124 + .129, a 'wandering' IP). Disable networkd;
+    # socket unit names drift across systemd releases, so tolerate absent ones.
+    # DNS: systemd-resolved STAYS enabled (ALARM default). systemd-tmpfiles recreates
+    # /etc/resolv.conf as the resolved stub symlink on every boot, and NM auto-detects that and
+    # feeds resolved over D-Bus — fighting this wiring broke DNS twice (dangling symlink with
+    # resolved off; then rc-manager=file, which FOLLOWS the symlink into the absent
+    # /run/systemd/resolve). Bonus: resolved's fallback DNS servers keep names resolving even if
+    # a site's DHCP hands out a dead DNS. Live-verified on the Pi 5 across a reboot.
     systemctl enable NetworkManager
     systemctl disable \
         systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service \
         systemd-networkd-resolve-hook.socket systemd-networkd-varlink.socket \
         systemd-networkd-varlink-metrics.socket systemd-network-generator.service \
-        systemd-resolved.service systemd-resolved-monitor.socket systemd-resolved-varlink.socket \
         2>/dev/null || true
 
     # Trim firmware: keep only Broadcom (onboard wifi/BT — works, see modprobe.d/brcmfmac.conf in
@@ -227,9 +230,10 @@ EOF
 { sha256sum "$ROOTFS/boot/pieeprom.upd" | awk '{print $1}'
   echo "ts: $(date -u -d "$RPI_EEPROM_VER" +%s)"; } > "$ROOTFS/boot/pieeprom.sig"
 
-# The static resolv.conf (written in step 2) was only for the chroot builds above; at runtime
-# NetworkManager owns DNS and writes /etc/resolv.conf on first activation (DHCP-provided servers).
-rm -f "$ROOTFS/etc/resolv.conf"
+# The static resolv.conf (written in step 2) was only for the chroot builds above; restore the
+# Arch factory state — the systemd-resolved stub symlink (same one systemd-tmpfiles would
+# recreate at boot). resolved is enabled, so the target exists at runtime.
+ln -sf ../run/systemd/resolve/stub-resolv.conf "$ROOTFS/etc/resolv.conf"
 
 cleanup; trap - EXIT
 
