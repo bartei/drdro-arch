@@ -12,29 +12,40 @@ a baked venv (Kivy et al. as **wheels**) → assemble a 2-partition SD image. Re
 `github.com/bartei/drdro-arch`. (Replaced NixOS — too big/fighty — and the parked Buildroot/Yocto
 experiments in `github.com/bartei/drdro-os`.)
 
-## v1.0.1 field-test findings (2026-07-02, flashed release image)
-- **Pi 3B: on-screen keyboard never appears** (tap a text field → nothing). Root cause: Kivy's
-  Linux default is `keyboard_mode=system` (VKeyboard never shows); the old ospi Debian image got
-  it from `export KCFG_KIVY_KEYBOARD_MODE="systemanddock"` in its `start.sh` — our launcher never
-  set it. **FIX BAKED (unverified on hardware): same export added to `overlay/opt/drdro/
-  app-run.sh`.** Quick on-device test without reflash: edit `/opt/drdro/app-run.sh` (tty2 or SSH)
-  and restart `drdro`. Related cosmetic: **mouse pointer parked top-left** = SDL cursor at (0,0);
-  app default `hide_mouse_cursor=False` shows it — toggle it off in the Formats screen (app-config
-  setting; consider flipping the app default for appliances). NOT the keyboard's cause.
-- **Pi 5: boot-loops at the bootloader diagnostic screen.** Image verified Pi5-complete (dissected
-  v1.0.1: bcm2712 dtbs + d0 variants, overlay_map + vc4-kms-v3d-pi5.dtbo, kernel 6.18.37-1-rpi has
-  bcm2712/RP1 drivers, sdhci-brcmstb builtin; kernel_2712.img absent is fine — documented fallback
-  to kernel8.img). Root cause: **linux-rpi 6.18.x needs a recent Pi 5 bootloader EEPROM
-  (~Dec 2025+)** — known ALARM issue (forum t=17369 solved by `rpi-eeprom-update -a`, PSA t=17381).
-  **FIX BAKED (unverified on hardware): EEPROM self-heal on the boot partition** — build.sh 5c
-  ships `recovery.bin` + `pieeprom.upd` + `pieeprom.sig` (pinned rpi-eeprom `firmware-2712/
-  default` 2026-05-26, sha256-verified at build). BCM2712 boot ROM runs recovery.bin from SD
-  before the EEPROM → flashes, renames itself to recovery.000, reboots into the OS (the `.upd`
-  naming = auto-continue; `.bin` naming = Imager's green-screen halt). Expected first power-on on
-  an old Pi 5: brief flash + one automatic reboot, then normal boot. Pi 3 ignores the files;
-  **2712-only — revisit before any Pi 4 unit** (2711 ROM also reads recovery.bin). Manual
-  alternative still valid: RPi Imager → Misc utility images → Bootloader, or RPi OS +
-  `rpi-eeprom-update -a`.
+## Field-test findings (2026-07-02, v1.0.1 → v1.0.2-beta.1 on real Pi 3B + Pi 5)
+- **On-screen keyboard — FIXED, HW-VERIFIED on Pi 3.** Kivy's Linux default is
+  `keyboard_mode=system` (VKeyboard never shows); ospi's Debian start.sh exported
+  `KCFG_KIVY_KEYBOARD_MODE="systemanddock"` — same export now in `overlay/opt/drdro/app-run.sh`.
+  Cosmetic leftover: SDL pointer parked top-left = app default `hide_mouse_cursor=False`
+  (Formats-screen toggle; consider flipping the app default).
+- **Pi 5 EEPROM self-heal — VERIFIED.** recovery.bin flashed the pinned 2026-05-26 EEPROM and
+  renamed itself to recovery.000 (success marker seen on the card). Old-EEPROM diagnosis was
+  necessary but NOT sufficient — see next item. 2712-only caveat for Pi 4 stands (build.sh 5c).
+- **Pi 5 dies ~4 s into boot — ROOT CAUSE: USB power cap.** The USB touchscreen's draw exceeds
+  the Pi 5's 600 mA USB budget (no 5 A USB-PD supply negotiated) → rail collapses at USB coldplug
+  → hard reset, nothing in the journal (it just stops at ~3.9 s monotonic). User-confirmed: boots
+  fine with the screen unplugged (3.5 min uptime, wifi tests ran there). Pi 3/4 don't negotiate/
+  cap, hence "works on other Pis". **FIX BAKED (unverified): `[pi5] usb_max_current_enable=1`**
+  in boot/config.txt (also applied live to the bench card + its `config.txt.orig`/
+  `cmdline.txt.orig` backups; card cmdline is still the VERBOSE debug one — restore from .orig
+  once the Pi 5 boots clean). Collateral of the first crash-session: board died mid-first-boot
+  growfs writes → ext4 dir corruption (kivy/input → lost+found) → the Pi 3 "crash loop"
+  (`ModuleNotFoundError: kivy.input.provider`, Kivy fell back to x11 and died). Image itself
+  verified clean (e2fsck -fn + pristine venv in the artifact). Hardening TODO: order
+  `drdro.service` After=`drdro-growfs.service` so the first-boot resize never runs under app I/O;
+  until then, boot fresh flashes on the Pi 3 first.
+- **DNS dead on EVERY fresh boot (eth + wifi) — FIXED (unverified).** Arch systemd's tmpfiles
+  factory recreates `/etc/resolv.conf` each boot as a symlink to systemd-resolved's stub;
+  resolved is disabled, and NM rc-manager=auto sees the symlink and defers DNS to the absent
+  daemon (journal: `dns-mgr: init: dns=systemd-resolved rc-manager=symlink`). Address via DHCP
+  works, resolution doesn't. **FIX BAKED: overlay `20-dns.conf` → `[main] dns=default` +
+  `rc-manager=file`** (also applied live to the card + dangling symlink removed).
+- **5 GHz wifi on Pi 5 — OPEN: brcmfmac FIRMWARE TRAP.** Joining `raspberry5` crashes the
+  BCM43455's firmware (`brcmf_sdio_checkdied: firmware trap in dongle`, type 0x4, fw 7.45.265),
+  radio re-probes, NM misreports "secrets are required". 2.4 GHz connect + DHCP works on the
+  same boot. Test plan: (1) retry 5 GHz with `feature_disable=0x82000` removed (tuned on the Pi
+  3's 43430 — may be unneeded or trap-inducing on 43455), (2) newer brcmfmac firmware blob,
+  (3) set a regulatory domain. Don't regress the 2.4 GHz FWSUP fix while testing.
 
 ## Status as of 2026-07-01 (evening session)
 Validated **on real Pi 3B hardware**: boots, app autostarts, hardware GL (VC4 V3D), **RS-485
