@@ -68,3 +68,12 @@ dtparam=audio=on
 # No firmware rainbow splash at power-on (appliance). Deliberate re-add — the linux-rpi stock
 # config doesn't carry it, and the bench Pi never had it re-applied after the kernel swap.
 disable_splash=1
+
+[pi5]
+# Full USB current budget (1.6 A) even without a 5 A USB-PD supply — the USB touchscreen's
+# draw/inrush exceeds the Pi 5's default 600 mA cap and brownouts the boot within seconds
+# (bench-diagnosed: journal dies ~4 s in at USB coldplug; boots fine with the screen unplugged).
+# Pi 3/4 have no PD negotiation/current cap, which is why the same screen works there.
+usb_max_current_enable=1
+
+[all]
