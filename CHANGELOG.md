@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.0.2-beta.2 (2026-07-03)
+
+### Bug Fixes
+
+- Lift the Pi 5 USB current cap for the touchscreen
+  ([`7bbaa63`](https://github.com/bartei/drdro-arch/commit/7bbaa6349408b240f663a74874c4ef4554d58bae))
+
+- NetworkManager writes /etc/resolv.conf itself — DNS was dead on every fresh boot
+  ([`2440990`](https://github.com/bartei/drdro-arch/commit/2440990dbc8aa4c16d4162e08408b2e9f11d6519))
+
+### Documentation
+
+- Field-test round 2 — keyboard+EEPROM verified, Pi 5 power root cause, DNS fix, 5 GHz trap open
+  ([`d92df26`](https://github.com/bartei/drdro-arch/commit/d92df26c81a6132ecb92d5dd6757306049276656))
+
+
 ## v1.0.2-beta.1 (2026-07-02)
 
 ### Bug Fixes
