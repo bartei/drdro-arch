@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.0.2 (2026-07-03)
+
+### Bug Fixes
+
+- Keep systemd-resolved — NM-owned resolv.conf broke DNS two ways
+  ([`8cb7211`](https://github.com/bartei/drdro-arch/commit/8cb721110fdb80490ca68718cf2a15eb9d24e07a))
+
+### Documentation
+
+- 5 GHz on Pi 5 verified working — raspberry5 failures were a wrong PSK
+  ([`62c838e`](https://github.com/bartei/drdro-arch/commit/62c838eef948c7dde74a7099652b31df405f5025))
+
+- V1.0.2 wrap-up — all field findings closed and user-verified on Pi 3B + Pi 5
+  ([`168e624`](https://github.com/bartei/drdro-arch/commit/168e6240eb766c89d3a0910beb446e6a40763af3))
+
+
 ## v1.0.2-beta.2 (2026-07-03)
 
 ### Bug Fixes
