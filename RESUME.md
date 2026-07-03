@@ -12,6 +12,15 @@ a baked venv (Kivy et al. as **wheels**) → assemble a 2-partition SD image. Re
 `github.com/bartei/drdro-arch`. (Replaced NixOS — too big/fighty — and the parked Buildroot/Yocto
 experiments in `github.com/bartei/drdro-os`.)
 
+## v1.0.2 — first PRODUCTION stable (2026-07-03)
+Everything below is closed and **user-verified on real Pi 3B + Pi 5**: clean boot on both boards
+(EEPROM self-heal + `usb_max_current_enable`), touchscreen incl. **multitouch**, on-screen
+keyboard, DNS via resolved, 2.4 + 5 GHz wifi on the Pi 5, and the app's firmware-update flow incl.
+the min-version banner (board flashed with older firmware showed the update requirement). All
+pre-1.0.2 releases/tags were DELETED from GitHub (they carry the DNS/Pi 5 defects) — v1.0.2 is
+the support baseline. Remaining hardening (non-blocking): `drdro-growfs` ordered before the app;
+gate the 2712 `recovery.bin` before any Pi 4 unit.
+
 ## Field-test findings (2026-07-02, v1.0.1 → v1.0.2-beta.1 on real Pi 3B + Pi 5)
 - **On-screen keyboard — FIXED, HW-VERIFIED on Pi 3.** Kivy's Linux default is
   `keyboard_mode=system` (VKeyboard never shows); ospi's Debian start.sh exported
