@@ -75,6 +75,11 @@ sudo dd if=drdro-arch-vX.Y.Z-rpi-aarch64.img of=/dev/sdX bs=4M conv=fsync status
 
 ## Notes / trade-offs
 
+- **Displays.** HDMI works out of the box. The **Waveshare 10.1" DSI LCD (C)** (MIPI-DSI +
+  I²C touch, 1280×800) is supported by linux-rpi's native `vc4-kms-dsi-waveshare-panel` overlay —
+  shipped as a **one-line `config.txt` toggle**, commented by default. Enable a DSI unit by
+  uncommenting the line on the SD boot partition (no reflash); leave it commented on HDMI units (a
+  DSI panel has no hotplug-detect). See [`docs/WAVESHARE_DSI_design.md`](docs/WAVESHARE_DSI_design.md).
 - **Rolling release, by choice.** Each build pulls current Arch packages + the latest app release
   (`APP_REF=latest` = newest `v*` tag; override to pin). Not reproducible build-to-build — accepted
   here: CI is run on demand and images are tested before release.

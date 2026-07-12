@@ -69,6 +69,20 @@ dtparam=audio=on
 # config doesn't carry it, and the bench Pi never had it re-applied after the kernel swap.
 disable_splash=1
 
+# --- Optional: Waveshare 10.1inch DSI LCD (C) panel (HDMI works out of the box) ---
+# This image drives HDMI displays with no changes. To run the Waveshare 10.1" DSI LCD (C)
+# instead (MIPI-DSI video + I2C capacitive touch, 1280x800), UNCOMMENT the single line below
+# and reboot — that's the only per-unit change (edit it straight on the SD card's boot
+# partition; no reflash). The panel is driven by linux-rpi's native overlay (no extra driver),
+# and touch is auto-detected by the app the same way the USB panel is (mtdev/probesysfs).
+# vc4-kms-v3d above is required and must stay enabled. Default DSI port is DSI1 (the standard
+# display connector on Pi 3/4 and the recommended port on Pi 5/CM).
+# Leave this COMMENTED on HDMI units: a DSI panel has no hotplug-detect, so once the overlay is
+# loaded KMS always reports the DSI connector as connected — on an HDMI-only unit that makes a
+# phantom display the app may render to instead of the HDMI.
+# Optional orientation tweaks: append ,rotation=90 (or ,invx / ,invy / ,swapxy) to the line.
+#dtoverlay=vc4-kms-dsi-waveshare-panel,10_1_inch
+
 [pi5]
 # Full USB current budget (1.6 A) even without a 5 A USB-PD supply — the USB touchscreen's
 # draw/inrush exceeds the Pi 5's default 600 mA cap and brownouts the boot within seconds

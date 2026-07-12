@@ -21,6 +21,27 @@ pre-1.0.2 releases/tags were DELETED from GitHub (they carry the DNS/Pi 5 defect
 the support baseline. Remaining hardening (non-blocking): `drdro-growfs` ordered before the app;
 gate the 2712 `recovery.bin` before any Pi 4 unit.
 
+## Display support (2026-07-12): Waveshare 10.1" DSI LCD (C) — VERIFIED on real device
+Added support for the **Waveshare 10.1inch DSI LCD (C)** alongside HDMI. It's a **DSI** panel (not
+SPI — the request mis-remembered the bus), and it's **natively supported by our `linux-rpi` kernel**
+via the in-tree overlay `vc4-kms-dsi-waveshare-panel` — no driver package, no Waveshare install
+script. Touch (Goodix I²C, multitouch evdev) is auto-detected by Kivy's existing `mtdev`/probesysfs,
+so **no app/packages change**. Design + field guide: [`docs/WAVESHARE_DSI_design.md`](docs/WAVESHARE_DSI_design.md);
+tracker: [`docs/WAVESHARE_DSI_todo.md`](docs/WAVESHARE_DSI_todo.md).
+- **Mechanism: single image + `config.txt` toggle.** `boot/config.txt` ships the line
+  `#dtoverlay=vc4-kms-dsi-waveshare-panel,10_1_inch` **commented**, fully documented in-file.
+  A DSI unit is enabled by uncommenting it on the SD boot partition (no reflash). Default DSI port
+  DSI1 (correct on Pi 3/4 and recommended on Pi 5/CM) → one line covers all boards.
+- **Why not always-on:** a DSI panel has **no hotplug-detect**, so a loaded overlay makes KMS report
+  the DSI connector as permanently connected → phantom display the headless SDL kmsdrm launcher
+  could render to instead of HDMI. Hence the per-unit toggle (zero risk to HDMI units). Build-variant
+  and boot-auto-detect approaches were considered and rejected (see design doc).
+- **`build.sh`** warns loudly if `vc4-kms-dsi-waveshare-panel.dtbo` ever stops shipping in linux-rpi
+  (so the toggle can't silently no-op). No other build change.
+- **HARDWARE-VERIFIED 2026-07-12** on a real device: uncommenting the line → 1280×800 image,
+  multitouch + on-screen keyboard, correct orientation with the committed line (no `rotation=`/
+  `swapxy` needed); HDMI units (line commented) unaffected. See the todo Phase 2 (all checked).
+
 ## Field-test findings (2026-07-02, v1.0.1 → v1.0.2-beta.1 on real Pi 3B + Pi 5)
 - **On-screen keyboard — FIXED, HW-VERIFIED on Pi 3.** Kivy's Linux default is
   `keyboard_mode=system` (VKeyboard never shows); ospi's Debian start.sh exported
@@ -235,6 +256,9 @@ Watch a run to completion (external `jq` NOT on PATH — use `gh -q`):
 7. Serial: app repo's `config.ini` points at a USB CH340 by-id path; `build.sh` forces
    `serial_port = /dev/serial0` (GPIO) — right for the bench Pi. Revisit if a unit uses the dongle.
 8. ~~Rootfs auto-grow~~ DONE (drdro-growfs.service, live-tested; see Status).
+9. ~~**Waveshare 10.1" DSI LCD (C)**~~ DONE + **hardware-verified 2026-07-12** (config.txt toggle;
+   see Display support section). Remaining: add a section to the static website docs. Optional
+   later: a `PANEL=` build variant baking a ready-to-flash `…-dsi.img`.
 
 ## Gotchas / hard-won
 - ALARM `rpi-aarch64` ships **mainline kernel + U-Boot**, whose `boot.txt` sets

@@ -182,6 +182,11 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
 cp -a "$HERE/overlay/." "$ROOTFS/"
 cp "$HERE/boot/config.txt"  "$ROOTFS/boot/config.txt"
 cp "$HERE/boot/cmdline.txt" "$ROOTFS/boot/cmdline.txt"
+# config.txt ships the Waveshare 10.1" DSI panel overlay line commented (a DSI unit enables it
+# by uncommenting — see boot/config.txt). Warn loudly if linux-rpi ever stops shipping the
+# .dtbo, so that toggle can't silently become a no-op on a freshly built image.
+WS_DTBO="$ROOTFS/boot/overlays/vc4-kms-dsi-waveshare-panel.dtbo"
+[ -f "$WS_DTBO" ] || echo "build.sh: WARNING: ${WS_DTBO#$ROOTFS} missing from linux-rpi — the Waveshare 10.1\" DSI toggle in config.txt will not work" >&2
 # The image knows its own release version (support: `cat /etc/drdro-release` on a device).
 echo "VERSION=${DRDRO_VERSION}" > "$ROOTFS/etc/drdro-release"
 
