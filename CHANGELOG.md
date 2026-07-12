@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v1.1.0 (2026-07-12)
+
+### Continuous Integration
+
+- Add mock static content deploy pipeline
+  ([`7115fdf`](https://github.com/bartei/drdro-arch/commit/7115fdf240d227ee0f9dbf2c8cc292b1683832fe))
+
+- Remove static content deploy pipeline
+  ([`27ac494`](https://github.com/bartei/drdro-arch/commit/27ac494945b8a4126464226d6518e54feacbb0e2))
+
+### Features
+
+- Add Waveshare 10.1" DSI LCD (C) display support
+  ([`330fc95`](https://github.com/bartei/drdro-arch/commit/330fc9530e6a3ba5ce30de5c726b49f8824fd802))
+
+
 ## v1.0.2 (2026-07-03)
 
 ### Bug Fixes
