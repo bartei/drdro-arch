@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-08-25)
+
+### Bug Fixes
+
+- Stamp the baked app version and fail loudly if it can't be resolved
+  ([`234147c`](https://github.com/bartei/drdro-arch/commit/234147cc61a0a0bb040126f1bb9e6a39f882621a))
+
+
 ## v1.1.0 (2026-07-12)
 
 ### Continuous Integration
