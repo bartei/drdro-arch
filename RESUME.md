@@ -200,7 +200,8 @@ of the tty3 screen buffer — handy trick).
   `nix-shell -p sshpass --run 'sshpass -p default ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null default@10.1.2.129 "<cmd>"'`
 - The live Pi ≈ what the repo now builds (kernel 6.18.37-1-rpi, mtdev, powersave conf), plus the
   wifi-debug leftovers listed above.
-- App: `/opt/drdro/app` (git v1.3.0 + `.venv`), runs as root via `drdro.service`; logs in
+- App: `/opt/drdro/app` (git checkout of the newest stable app tag at build time — v1.3.0 on this
+  bench Pi, v1.7.2 as of 2026-08-25 — plus `.venv`), runs as root via `drdro.service`; logs in
   `/var/log/drdro/`. Kivy config `/root/.kivy/config.ini` (stock). App `config.ini`:
   `serial_port = /dev/serial0` (build.sh sed).
 

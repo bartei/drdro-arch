@@ -49,9 +49,17 @@ trap cleanup EXIT
 # Prerelease tags (v1.4.1-beta.N, published from the app's dev branch) sort ABOVE their
 # stable release in -v:refname order — filter them out so the image never bakes a beta.
 if [ "$APP_REF" = "latest" ]; then
-    APP_REF="$(git ls-remote --tags --refs --sort=-v:refname "$APP_REPO" 'v*' \
-               | sed 's#.*/##' | grep -v -e - | head -n1)"
-    echo "build.sh: latest stable release tag = ${APP_REF:-<none>}"
+    # No `head -n1` in the pipeline: it can SIGPIPE the upstream grep and, under pipefail,
+    # abort the build for no reason. Take the whole sorted list and slice the first line here.
+    # GIT_TERMINAL_PROMPT=0: if the repo ever goes private/renamed, git asks for credentials and
+    # hangs the runner until the job timeout instead of failing.
+    APP_TAGS="$(GIT_TERMINAL_PROMPT=0 git ls-remote --tags --refs --sort=-v:refname "$APP_REPO" 'v*' \
+                | sed 's#.*/##' | grep -v -e - || true)"
+    APP_REF="${APP_TAGS%%$'\n'*}"
+    # Never silently fall back to a branch — an unresolvable tag list means a network/auth
+    # problem, and baking untagged HEAD into a release image is worse than failing the build.
+    [ -n "$APP_REF" ] || { echo "build.sh: no stable release tag found at $APP_REPO" >&2; exit 1; }
+    echo "build.sh: latest stable release tag = $APP_REF"
 fi
 
 # --- 4. pacman runtime + git-clone app + pip install into a baked venv ---
@@ -136,8 +144,8 @@ chroot "$ROOTFS" /bin/bash -euo pipefail -c "
     printf 'PasswordAuthentication yes\nKbdInteractiveAuthentication no\n' > /etc/ssh/sshd_config.d/10-drdro.conf
 
     install -d /opt/drdro
-    git clone '$APP_REPO' /opt/drdro/app
-    git -C /opt/drdro/app checkout -q '${APP_REF:-main}'
+    GIT_TERMINAL_PROMPT=0 git clone '$APP_REPO' /opt/drdro/app
+    git -C /opt/drdro/app checkout -q '$APP_REF'
     # The board is on the GPIO UART; the committed config.ini points at a USB path.
     [ -f /opt/drdro/app/config.ini ] && sed -i 's|^serial_port *=.*|serial_port = /dev/serial0|' /opt/drdro/app/config.ini
 
@@ -187,8 +195,10 @@ cp "$HERE/boot/cmdline.txt" "$ROOTFS/boot/cmdline.txt"
 # .dtbo, so that toggle can't silently become a no-op on a freshly built image.
 WS_DTBO="$ROOTFS/boot/overlays/vc4-kms-dsi-waveshare-panel.dtbo"
 [ -f "$WS_DTBO" ] || echo "build.sh: WARNING: ${WS_DTBO#$ROOTFS} missing from linux-rpi — the Waveshare 10.1\" DSI toggle in config.txt will not work" >&2
-# The image knows its own release version (support: `cat /etc/drdro-release` on a device).
-echo "VERSION=${DRDRO_VERSION}" > "$ROOTFS/etc/drdro-release"
+# The image knows its own release version and which app release it baked (support:
+# `cat /etc/drdro-release` on a device — APP_VERSION is what shipped, not what the in-app
+# updater may have moved the checkout to since).
+printf 'VERSION=%s\nAPP_VERSION=%s\n' "$DRDRO_VERSION" "$APP_REF" > "$ROOTFS/etc/drdro-release"
 
 # --- 5b. optional: silent boot + drDRO Plymouth splash (see docs/PLYMOUTH.md) ---
 if [ "$ENABLE_PLYMOUTH" = "1" ]; then

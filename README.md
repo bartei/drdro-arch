@@ -15,7 +15,9 @@ Kivy/pydantic/etc. "just work" from PyPI wheels with no wheelhouse and no sandbo
    making our `cmdline.txt` authoritative, and the firmware picks the dtb per board.
 3. `pacman -S` the runtime: SDL2, mesa (v3d/vc4 GL), `mtdev` (touch), Python, git,
    NetworkManager, audio, fonts (see [`packages.txt`](packages.txt)).
-4. `git clone` the app and **`pip install` it into a baked venv** at `/opt/drdro/app/.venv`. Native
+4. `git clone` the app at its **newest stable release tag** (resolved from the remote at build
+   time; prerelease `-beta.N` tags are filtered out — override with `APP_REF=<tag|branch|rev>`)
+   and **`pip install` it into a baked venv** at `/opt/drdro/app/.venv`. Native
    pip pulls the correct aarch64 wheels — so the venv ships *inside the image* and **first boot needs
    no network and no wheelhouse**. (This is why the Arch track is simpler than the Buildroot/Yocto
    ones, which needed a vendored wheelhouse for offline first boot.)
@@ -58,7 +60,8 @@ Same tooling as `drdro-software-f4` (python-semantic-release, conventional commi
 - **push to `main`** → **official stable release** (`vX.Y.Z`).
 - Every release carries a **full changelog** (release notes + `CHANGELOG.md` + CI job summary)
   and a versioned artifact: `drdro-arch-vX.Y.Z-rpi-aarch64.img.zst` + `SHA256SUMS` —
-  the image also stamps itself (`cat /etc/drdro-release` on a device).
+  the image also stamps itself (`cat /etc/drdro-release` on a device — `VERSION` is the image,
+  `APP_VERSION` the app release it baked).
 - Stable releases will be **announced on Discord** once the `DISCORD_RELEASE_WEBHOOK` secret is
   configured (placeholder step in `release.yml`; betas stay quiet).
 
