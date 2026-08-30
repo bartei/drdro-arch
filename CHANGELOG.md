@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.0-beta.1 (2026-08-30)
+
+### Features
+
+- **ci**: Bake the app's dev branch on dev, newest stable tag on main
+  ([`3c44269`](https://github.com/bartei/drdro-arch/commit/3c44269aa9cc585801797edd48de8592e11a9112))
+
+
 ## v1.1.1 (2026-08-25)
 
 ### Bug Fixes
