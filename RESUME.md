@@ -207,7 +207,9 @@ of the tty3 screen buffer — handy trick).
 
 ## Releases — semantic-release (2026-07-02)
 Standard practice mirrored from drdro-software-f4 (**python-semantic-release**, conventional
-commits): `dev` push → **beta prerelease** (vX.Y.Z-beta.N), `main` push → **stable**. Config in
+commits): `dev` push → **beta prerelease** (vX.Y.Z-beta.N) baking the app's **`dev`** branch,
+`main` push → **stable** baking the app's **newest stable release tag** (build.sh derives
+`APP_REF` from `BUILD_BRANCH`; the exact commit lands in `/etc/drdro-release` as `APP_COMMIT`). Config in
 `pyproject.toml` (tag-only versioning — no version file; `allow_zero_version=false` so the first
 release is v1.0.0; `patch_without_tag=true` = every release-branch push releases). The image is
 built INSIDE `semantic-release version` via `build_command = scripts/build-release.sh`

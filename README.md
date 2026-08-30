@@ -15,8 +15,9 @@ Kivy/pydantic/etc. "just work" from PyPI wheels with no wheelhouse and no sandbo
    making our `cmdline.txt` authoritative, and the firmware picks the dtb per board.
 3. `pacman -S` the runtime: SDL2, mesa (v3d/vc4 GL), `mtdev` (touch), Python, git,
    NetworkManager, audio, fonts (see [`packages.txt`](packages.txt)).
-4. `git clone` the app at its **newest stable release tag** (resolved from the remote at build
-   time; prerelease `-beta.N` tags are filtered out — override with `APP_REF=<tag|branch|rev>`)
+4. `git clone` the app at the ref that matches the branch being built — `main` → the app's
+   **newest stable release tag** (resolved from the remote at build time, `-beta.N` tags filtered
+   out), `dev` → the app's **`dev` branch**; override with `APP_REF=<tag|branch|rev|latest>` —
    and **`pip install` it into a baked venv** at `/opt/drdro/app/.venv`. Native
    pip pulls the correct aarch64 wheels — so the venv ships *inside the image* and **first boot needs
    no network and no wheelhouse**. (This is why the Arch track is simpler than the Buildroot/Yocto
@@ -56,12 +57,14 @@ sdl2-compat/SDL3's KMSDRM never releases DRM master on its own.
 
 Same tooling as `drdro-software-f4` (python-semantic-release, conventional commits):
 
-- **push to `dev`** → next version as a **beta prerelease** (`vX.Y.Z-beta.N`).
-- **push to `main`** → **official stable release** (`vX.Y.Z`).
+- **push to `dev`** → next version as a **beta prerelease** (`vX.Y.Z-beta.N`), baking the app's
+  **`dev`** branch.
+- **push to `main`** → **official stable release** (`vX.Y.Z`), baking the app's **newest stable
+  release tag**.
 - Every release carries a **full changelog** (release notes + `CHANGELOG.md` + CI job summary)
   and a versioned artifact: `drdro-arch-vX.Y.Z-rpi-aarch64.img.zst` + `SHA256SUMS` —
   the image also stamps itself (`cat /etc/drdro-release` on a device — `VERSION` is the image,
-  `APP_VERSION` the app release it baked).
+  `APP_VERSION` the app ref it baked, `APP_COMMIT` the exact commit that ref pointed at).
 - Stable releases will be **announced on Discord** once the `DISCORD_RELEASE_WEBHOOK` secret is
   configured (placeholder step in `release.yml`; betas stay quiet).
 
@@ -83,9 +86,10 @@ sudo dd if=drdro-arch-vX.Y.Z-rpi-aarch64.img of=/dev/sdX bs=4M conv=fsync status
   shipped as a **one-line `config.txt` toggle**, commented by default. Enable a DSI unit by
   uncommenting the line on the SD boot partition (no reflash); leave it commented on HDMI units (a
   DSI panel has no hotplug-detect). See [`docs/WAVESHARE_DSI_design.md`](docs/WAVESHARE_DSI_design.md).
-- **Rolling release, by choice.** Each build pulls current Arch packages + the latest app release
-  (`APP_REF=latest` = newest `v*` tag; override to pin). Not reproducible build-to-build — accepted
-  here: CI is run on demand and images are tested before release.
+- **Rolling release, by choice.** Each build pulls current Arch packages + the app ref for the
+  branch (`main` = newest stable `v*` tag, `dev` = app `dev` tip; override with `APP_REF`). Not
+  reproducible build-to-build — accepted here: CI is run on demand and images are tested before
+  release. The exact app commit baked is recorded as `APP_COMMIT` in `/etc/drdro-release`.
 - **`SigLevel = Never` during the build** (skips pacman key init, which hangs in CI). Revisit if
   build-time package provenance matters.
 - **Slimmed on purpose** (rootfs ~1.6 GB, down from ~3.2 GB; every removal validated on the bench

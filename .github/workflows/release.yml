@@ -1,8 +1,9 @@
 name: release
 
 # Semantic release (same tooling as drdro-software-f4: python-semantic-release).
-# push to dev  -> next version as a BETA prerelease (v1.2.3-beta.N, GitHub prerelease)
-# push to main -> OFFICIAL stable release (v1.2.3)
+# push to dev  -> next version as a BETA prerelease (v1.2.3-beta.N, GitHub prerelease), baking
+#                the app's dev branch
+# push to main -> OFFICIAL stable release (v1.2.3), baking the app's newest stable release tag
 # The SD image is built INSIDE `semantic-release version` (build_command in pyproject.toml) so
 # the artifact is named with — and stamped with (/etc/drdro-release) — the exact version.
 
@@ -24,6 +25,10 @@ jobs:
     env:
       WORK: /mnt/arch/work      # build on the big ephemeral /mnt volume, not the small root disk
       OUT: /mnt/arch/out
+      # build.sh derives the app ref from this (main -> newest stable app tag, dev -> app dev
+      # branch). The runner checkout is detached, so pass the branch explicitly rather than
+      # letting build.sh read it from the checkout.
+      BUILD_BRANCH: ${{ github.ref_name }}
 
     steps:
       - uses: actions/checkout@v4

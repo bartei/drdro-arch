@@ -9,7 +9,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="${WORK:-$HERE/work}"
 OUT="${OUT:-$HERE/out}"
 
-sudo WORK="$WORK" OUT="$OUT" DRDRO_VERSION="$NEW_VERSION" "$HERE/build.sh"
+# sudo drops the environment — forward BUILD_BRANCH (release.yml sets it to the branch being
+# released; build.sh maps main -> newest stable app tag, dev -> the app's dev branch).
+sudo WORK="$WORK" OUT="$OUT" DRDRO_VERSION="$NEW_VERSION" \
+     BUILD_BRANCH="${BUILD_BRANCH:-}" APP_REF="${APP_REF:-}" "$HERE/build.sh"
 
 mkdir -p "$HERE/dist"
 IMG="$OUT/drdro-arch-rpi-aarch64.img"

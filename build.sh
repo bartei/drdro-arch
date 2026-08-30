@@ -18,7 +18,8 @@ ROOTFS="$WORK/rootfs"
 
 ALARM_URL="http://os.archlinuxarm.org/os/ArchLinuxARM-rpi-aarch64-latest.tar.gz"
 APP_REPO="https://github.com/bartei/drdro-software-f4.git"
-APP_REF="${APP_REF:-latest}"   # "latest" = newest release tag; or set a tag/branch/rev
+APP_REF="${APP_REF:-}"           # empty = derived from the branch being built (see step 3)
+BUILD_BRANCH="${BUILD_BRANCH:-}" # which drdro-arch branch this build is for; CI passes it
 BOOT_MB=128   # /boot content is ~66 MB (kernel8 + initramfs + firmware blobs + overlays) — 2x headroom
 DRDRO_VERSION="${DRDRO_VERSION:-dev}"   # semantic-release passes the real version at release time
 ENABLE_PLYMOUTH="${ENABLE_PLYMOUTH:-1}"   # silent boot + drDRO splash (see docs/PLYMOUTH.md); 0 = verbose boot
@@ -45,7 +46,29 @@ printf 'nameserver 1.1.1.1\nnameserver 8.8.8.8\n' > "$ROOTFS/etc/resolv.conf"
 cleanup() { umount -R "$ROOTFS/proc" "$ROOTFS/sys" "$ROOTFS/dev" 2>/dev/null || true; }
 trap cleanup EXIT
 
-# --- 3. resolve the app ref (latest STABLE release tag by default) ---
+# --- 3. resolve the app ref (default: derived from the branch being built) ---
+# The app ref follows the drdro-arch branch this image is for:
+#   main -> "latest": the app's newest STABLE release tag (what ships to real machines)
+#   dev  -> the app's `dev` branch (betas track app development)
+# CI passes BUILD_BRANCH=github.ref_name because the runner checkout is detached; a local build
+# reads the checked-out branch. APP_REF=<tag|branch|rev|latest> overrides the mapping entirely.
+if [ -z "$APP_REF" ]; then
+    if [ -z "$BUILD_BRANCH" ]; then
+        # -c safe.directory: build.sh runs as root over a normally user-owned checkout, and git
+        # refuses ("dubious ownership") without it.
+        BUILD_BRANCH="$(git -c safe.directory="$HERE" -C "$HERE" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+        [ -n "$BUILD_BRANCH" ] && [ "$BUILD_BRANCH" != "HEAD" ] || {
+            echo "build.sh: can't tell which branch this build is for (detached HEAD?) — set BUILD_BRANCH or APP_REF" >&2
+            exit 1
+        }
+    fi
+    case "$BUILD_BRANCH" in
+        main) APP_REF="latest" ;;
+        *)    APP_REF="$BUILD_BRANCH" ;;
+    esac
+    echo "build.sh: branch '$BUILD_BRANCH' -> app ref '$APP_REF'"
+fi
+
 # Prerelease tags (v1.4.1-beta.N, published from the app's dev branch) sort ABOVE their
 # stable release in -v:refname order — filter them out so the image never bakes a beta.
 if [ "$APP_REF" = "latest" ]; then
@@ -61,6 +84,16 @@ if [ "$APP_REF" = "latest" ]; then
     [ -n "$APP_REF" ] || { echo "build.sh: no stable release tag found at $APP_REPO" >&2; exit 1; }
     echo "build.sh: latest stable release tag = $APP_REF"
 fi
+
+# Fail here, not ten minutes into the chroot at the clone: a typo or a branch that doesn't exist
+# upstream (e.g. building a feature branch with no app counterpart) should stop the build now.
+# A raw commit sha can't be checked with ls-remote — let those through to the clone.
+if ! [[ "$APP_REF" =~ ^[0-9a-f]{7,40}$ ]] \
+   && ! GIT_TERMINAL_PROMPT=0 git ls-remote --exit-code --refs "$APP_REPO" "$APP_REF" >/dev/null 2>&1; then
+    echo "build.sh: '$APP_REF' is not a branch or tag at $APP_REPO" >&2
+    exit 1
+fi
+echo "build.sh: baking app ref $APP_REF"
 
 # --- 4. pacman runtime + git-clone app + pip install into a baked venv ---
 mapfile -t PKGS < <(grep -vE '^\s*#|^\s*$' "$HERE/packages.txt")
@@ -197,8 +230,12 @@ WS_DTBO="$ROOTFS/boot/overlays/vc4-kms-dsi-waveshare-panel.dtbo"
 [ -f "$WS_DTBO" ] || echo "build.sh: WARNING: ${WS_DTBO#$ROOTFS} missing from linux-rpi — the Waveshare 10.1\" DSI toggle in config.txt will not work" >&2
 # The image knows its own release version and which app release it baked (support:
 # `cat /etc/drdro-release` on a device — APP_VERSION is what shipped, not what the in-app
-# updater may have moved the checkout to since).
-printf 'VERSION=%s\nAPP_VERSION=%s\n' "$DRDRO_VERSION" "$APP_REF" > "$ROOTFS/etc/drdro-release"
+# updater may have moved the checkout to since). APP_VERSION is now usually a branch name, so
+# APP_COMMIT records the exact commit that branch pointed at when the image was built.
+APP_COMMIT="$(git -C "$ROOTFS/opt/drdro/app" rev-parse HEAD)"
+[ -n "$APP_COMMIT" ] || { echo "build.sh: could not resolve the baked app commit" >&2; exit 1; }
+printf 'VERSION=%s\nAPP_VERSION=%s\nAPP_COMMIT=%s\n' \
+    "$DRDRO_VERSION" "$APP_REF" "$APP_COMMIT" > "$ROOTFS/etc/drdro-release"
 
 # --- 5b. optional: silent boot + drDRO Plymouth splash (see docs/PLYMOUTH.md) ---
 if [ "$ENABLE_PLYMOUTH" = "1" ]; then

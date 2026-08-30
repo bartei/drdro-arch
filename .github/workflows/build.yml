@@ -6,9 +6,9 @@ on:
   workflow_dispatch:        # run on demand (build a new image when we want one)
     inputs:
       app_ref:
-        description: 'drdro-software-f4 ref to bake ("latest" = newest stable release tag)'
+        description: 'drdro-software-f4 ref to bake (blank = per branch: main -> newest stable tag, dev -> app dev branch)'
         required: false
-        default: latest
+        default: ''
   push:
     branches: [main, dev]
     paths: ['build.sh', 'packages.txt', 'overlay/**', 'boot/**', '.github/workflows/build.yml']
@@ -41,7 +41,12 @@ jobs:
             libarchive-tools dosfstools mtools e2fsprogs util-linux git curl zstd
 
       - name: Build image
-        run: sudo WORK="$WORK" OUT="$OUT" APP_REF="${{ inputs.app_ref || 'latest' }}" ./build.sh
+        # build.sh derives the app ref from the branch (main -> newest stable app tag, dev -> app
+        # dev branch) unless app_ref is given. The runner checkout is detached, so pass the branch
+        # explicitly rather than letting build.sh read it from the checkout.
+        run: |
+          sudo WORK="$WORK" OUT="$OUT" \
+               BUILD_BRANCH="${{ github.ref_name }}" APP_REF="${{ inputs.app_ref }}" ./build.sh
 
       - name: Upload image
         # No manual zstd: upload-artifact always zips. Upload the raw .img and let the zip compress
